@@ -39,6 +39,7 @@ from apps.contracts.models import (
 )
 from apps.contracts.services import ContractLifecycleService
 from common.export import export_queryset_to_csv as export_queryset_to_excel
+from rest_framework.response import Response
 
 User = settings.AUTH_USER_MODEL
 
@@ -115,7 +116,7 @@ class ContractViewSet(viewsets.ModelViewSet):
     ).all()
 
     search_fields = ["title", "school__name"]
-    filterset_fields = ["school", "status", "category", "priority_level"]
+    filterset_fields = ["school", "category", "priority_level"]
     ordering_fields = ["created_at", "estimated_cost", "priority_level"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
@@ -130,17 +131,22 @@ class ContractViewSet(viewsets.ModelViewSet):
         # Contractors see Open contracts OR those assigned to them
         if user.role == user.Role.CONTRACTOR:
             from django.db.models import Q
-            return qs.filter(
+            qs = qs.filter(
                 Q(status__in=["OPEN", "IN_BIDDING"]) |
                 Q(assignment__contractor__user=user)
             ).distinct()
             
+        # Optional: Handle multiple status parameters in query string
+        statuses = self.request.query_params.getlist("status")
+        if statuses:
+            qs = qs.filter(status__in=statuses)
+            
         # Schools see contracts for their school
         if user.role == user.Role.SCHOOL:
             if hasattr(user, 'school_profile'):
-                return qs.filter(school__udise_code=user.school_profile.udise_code)
-            
-        return qs.none()
+                qs = qs.filter(school__udise_code=user.school_profile.udise_code)
+        
+        return qs
 
     @extend_schema(summary="Export contracts to CSV", tags=["Contracts"])
     @action(detail=False, methods=["get"], url_path="export")
@@ -215,12 +221,15 @@ class ContractBidViewSet(viewsets.ModelViewSet):
         return qs.none()
 
     def perform_create(self, serializer):
-        ContractLifecycleService.submit_bid(
+        # We use the return value of the service to update the serializer instance
+        # so DRF responds with the correct created object
+        bid = ContractLifecycleService.submit_bid(
             user=self.request.user,
             contract_id=serializer.validated_data["contract"].id,
             quote=float(serializer.validated_data["bid_amount"]),
-            timeline_weeks=serializer.validated_data.get("estimated_days", 30) // 7
+            estimated_days=serializer.validated_data.get("estimated_days", 30)
         )
+        serializer.instance = bid
 
     @extend_schema(
         summary="Award contract to this bid",
@@ -320,6 +329,9 @@ class WorkProgressViewSet(viewsets.ModelViewSet):
                 return qs.filter(contract__school__udise_code=user.school_profile.udise_code)
                 
         return qs.none()
+
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user)
 
 
 # ===========================================================================

@@ -34,6 +34,7 @@ interface Contract {
   status: string;
   school_name: string;
   district: string;
+  current_progress: number;
   bid_start_date: string;
   bid_end_date: string;
 }
@@ -144,7 +145,7 @@ function MarketplacePanel() {
               </div>
               <div className="text-right">
                 <div className="text-xs font-bold text-[#9ea096] uppercase tracking-widest">Est. Budget</div>
-                <div className="text-xl font-black text-[#23251d]">₹{parseFloat(c.estimated_cost).toLocaleString()}</div>
+                <div className="text-xl font-black text-[#23251d]">₹{(parseFloat(c.estimated_cost) || 0).toLocaleString()}</div>
               </div>
             </div>
 
@@ -297,7 +298,7 @@ function BidsPanel() {
 
 function ActiveWorkPanel() {
   const { data: rawProjects, loading, refetch } = useApi<PaginatedResponse<Contract>>(
-    `${API.contracts.list}?status=IN_PROGRESS`
+    `${API.contracts.list}?status=AWARDED&status=IN_PROGRESS`
   );
   const [reporting, setReporting] = useState<Contract | null>(null);
   const [progress, setProgress] = useState(0);
@@ -312,31 +313,34 @@ function ActiveWorkPanel() {
     if (!reporting) return;
     setSubmitting(true);
     try {
-        // 1. Submit Progress
-        await fetch(API.contracts.progress, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contract: reporting.id,
-                progress_percentage: progress,
-                status: progress === 100 ? "COMPLETED" : "IN_PROGRESS",
-                update_note: note
-            })
-        });
-
-        // 2. Upload Proof if exists
+        // Consolidated Submission: Only call ONE endpoint
         if (proofFile) {
+            // If file exists, the proofs endpoint handles everything (file + progress)
             const formData = new FormData();
             formData.append("contract", reporting.id.toString());
             formData.append("file", proofFile);
             formData.append("file_type", "IMAGE");
             formData.append("progress_percentage", progress.toString());
-            formData.append("description", `Progress update to ${progress}%`);
+            formData.append("description", note || `Work proof for ${progress}% progress`);
 
-            await fetch(API.contracts.proofs, {
+            const proofRes = await fetch(API.contracts.proofs, {
                 method: "POST",
-                body: formData // No headers for FormData
+                body: formData
             });
+            if (!proofRes.ok) throw new Error("Failed to upload file proof");
+        } else {
+            // Only progress update
+            const progressRes = await fetch(API.contracts.progress, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contract: reporting.id,
+                    progress_percentage: progress,
+                    status: progress === 100 ? "COMPLETED" : "IN_PROGRESS",
+                    update_note: note || `Progress updated to ${progress}%`
+                })
+            });
+            if (!progressRes.ok) throw new Error("Failed to update status");
         }
 
         toast.success("Work progress updated!");
@@ -375,15 +379,18 @@ function ActiveWorkPanel() {
                     <div className="space-y-4 mb-6">
                         <div className="flex justify-between items-center text-xs font-bold text-[#4d4f46]">
                             <span>Work Progress</span>
-                            <span>{proj.status === 'COMPLETED' ? '100%' : 'Under Review'}</span>
+                            <span>{proj.current_progress}%</span>
                         </div>
                         <div className="h-2 bg-[#eeefe9] rounded-full overflow-hidden">
-                            <div className="h-full bg-[#F54E00] rounded-full transition-all duration-1000" style={{ width: '45%' }} />
+                            <div className="h-full bg-[#F54E00] rounded-full transition-all duration-1000" style={{ width: `${proj.current_progress}%` }} />
                         </div>
                     </div>
 
                     <button 
-                        onClick={() => setReporting(proj)}
+                        onClick={() => {
+                            setReporting(proj);
+                            setProgress(proj.current_progress);
+                        }}
                         className="w-full py-3 bg-[#eeefe9] border border-[#b6b7af] text-[#23251d] rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-[#23251d] hover:text-white transition-all flex items-center justify-center gap-2"
                     >
                         Post Update <Upload className="w-4 h-4" />
@@ -471,7 +478,7 @@ function ActiveWorkPanel() {
                          disabled={submitting}
                          className="w-full py-4 bg-[#23251d] text-white rounded-xl font-black uppercase tracking-widest hover:bg-[#F54E00] transition-all disabled:opacity-50"
                      >
-                         {submitting ? "Publishing..." : "Update Progress"}
+                         {submitting ? "Publishing..." : "Confirm & Send Verification"}
                      </button>
                  </div>
              </div>
@@ -532,7 +539,6 @@ export default function ContractorDashboard() {
           label="Active Projects" 
           value={stats.active_projects} 
           icon={Briefcase}
-          trend="+1 this month"
         />
         <StatCard 
           label="Pending Bids" 
@@ -543,7 +549,6 @@ export default function ContractorDashboard() {
           label="Total Earnings" 
           value={`₹${(stats.total_earnings || 0).toLocaleString()}`} 
           icon={IndianRupee}
-          trend="+₹12k since last week"
         />
       </div>
 

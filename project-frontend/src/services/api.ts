@@ -30,11 +30,11 @@ export const API = {
   },
 
   contracts: {
-    list: "/api/v1/contracts/",
+    list: "/api/v1/contracts/contracts/",
     bids: "/api/v1/contracts/bids/",
     progress: "/api/v1/contracts/progress/",
     proofs: "/api/v1/contracts/proofs/",
-    export: "/api/v1/contracts/export/",
+    export: "/api/v1/contracts/contracts/export/",
   },
 
   profiles: {

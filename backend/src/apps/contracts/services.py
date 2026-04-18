@@ -81,7 +81,7 @@ class ContractLifecycleService:
 
     @staticmethod
     @transaction.atomic
-    def submit_bid(user, contract_id: int, quote: float, timeline_weeks: int) -> ContractBid:
+    def submit_bid(user, contract_id: int, quote: float, estimated_days: int) -> ContractBid:
         """
         Allows a contractor to submit a bid for an OPEN contract.
         """
@@ -106,7 +106,7 @@ class ContractLifecycleService:
             contractor=user.contractor_profile,
             defaults={
                 "bid_amount": quote,
-                "estimated_days": timeline_weeks * 7,
+                "estimated_days": estimated_days,
                 "status": ContractBid.BidStatus.PENDING
             }
         )

@@ -132,9 +132,9 @@ class DashboardViewSet(viewsets.ViewSet):
             assigned_qs = Contract.objects.filter(assignment__contractor__user=user)
             
             data["stats"] = {
-                "active_projects": assigned_qs.filter(status="IN_PROGRESS").count(),
+                "active_projects": assigned_qs.filter(status__in=["AWARDED", "IN_PROGRESS"]).count(),
                 "pending_bids": ContractBid.objects.filter(contractor__user=user, status="PENDING").count(),
-                "total_earnings": assigned_qs.filter(status="COMPLETED").aggregate(total=Sum('assignment__final_amount'))['total'] or 0,
+                "total_earnings": float(assigned_qs.filter(status="COMPLETED").aggregate(total=Sum('assignment__final_amount'))['total'] or 0.0),
             }
         elif role == User.Role.STAFF:
             from apps.reports.models import WeeklyReport

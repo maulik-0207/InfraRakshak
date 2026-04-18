@@ -15,8 +15,6 @@ export function ContractorSidebar() {
   if (!isMounted) return null
   const navItems = [
     { title: "Dashboard", url: "/contractor/dashboard", icon: Home },
-    { title: "Open Contracts", url: "/contractor/available", icon: Gavel },
-    { title: "Active Projects", url: "/contractor/projects", icon: ClipboardCheck },
     { title: "Payments", url: "/contractor/payments", icon: Inbox },
     { title: "Account", url: "/contractor/account", icon: User },
     { title: "Settings", url: "/settings", icon: Settings },

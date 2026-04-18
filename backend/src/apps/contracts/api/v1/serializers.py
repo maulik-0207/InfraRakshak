@@ -22,14 +22,16 @@ class ContractListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     category_display = serializers.CharField(source="get_category_display", read_only=True)
     priority_display = serializers.CharField(source="get_priority_level_display", read_only=True)
+    school_name = serializers.CharField(source="school.name", read_only=True)
+    district = serializers.CharField(source="school.district", read_only=True)
 
     class Meta:
         model = Contract
         fields = [
             "id", "school", "prediction_report", "title", "description",
             "category", "category_display", "estimated_cost",
-            "priority_level", "priority_display",
-            "status", "status_display",
+            "priority_level", "priority_display", "school_name", "district",
+            "status", "status_display", "current_progress",
             "bid_start_date", "bid_end_date",
             "created_by", "created_at",
         ]
@@ -46,7 +48,7 @@ class ContractBidSerializer(serializers.ModelSerializer):
             "bid_amount", "estimated_days", "proposal_text",
             "status", "status_display", "submitted_at", "created_at",
         ]
-        read_only_fields = ["id", "submitted_at", "created_at"]
+        read_only_fields = ["id", "contractor", "submitted_at", "created_at"]
 
     def validate_bid_amount(self, value):
         if value <= 0:
@@ -79,7 +81,7 @@ class WorkProgressSerializer(serializers.ModelSerializer):
             "status", "status_display",
             "update_note", "updated_by", "updated_at", "created_at",
         ]
-        read_only_fields = ["id", "updated_at", "created_at"]
+        read_only_fields = ["id", "updated_by", "updated_at", "created_at"]
 
     def validate_progress_percentage(self, value):
         if not (0 <= value <= 100):
@@ -104,7 +106,7 @@ class WorkProofSerializer(serializers.ModelSerializer):
             "id", "contract", "file", "file_url", "file_type", "file_type_display",
             "description", "uploaded_by", "uploaded_at", "created_at",
         ]
-        read_only_fields = ["id", "uploaded_at", "created_at"]
+        read_only_fields = ["id", "uploaded_by", "uploaded_at", "created_at"]
 
     def get_file_url(self, obj) -> str | None:
         """Return the absolute URL for the uploaded file."""
@@ -169,7 +171,7 @@ class ContractDetailSerializer(serializers.ModelSerializer):
         fields = [
             "id", "school", "prediction_report", "title", "description",
             "category", "category_display", "estimated_cost",
-            "priority_level", "priority_display",
+            "priority_level", "priority_display", "current_progress",
             "status", "status_display",
             "bid_start_date", "bid_end_date",
             "created_by", "created_at", "updated_at",

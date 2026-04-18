@@ -122,6 +122,12 @@ class Contract(TimeStampedModel):
     def __str__(self) -> str:
         return f"{self.title} ({self.status})"
 
+    @property
+    def current_progress(self) -> int:
+        """Returns the latest progress percentage from WorkProgress history."""
+        latest = self.progress_updates.order_by("-updated_at").first()
+        return latest.progress_percentage if latest else 0
+
     def clean(self) -> None:
         super().clean()
         if self.bid_start_date and self.bid_end_date:
