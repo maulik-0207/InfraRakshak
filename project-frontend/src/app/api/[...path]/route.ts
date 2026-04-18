@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
  */
 
 // Configure this to match your real Python/Django backend
-const BACKEND_API_URL = "http://localhost:8000/api/v1";
+const BACKEND_API_URL = "http://192.168.1.29:8000/api/v1";
 
 async function handleProxyRequest(req: NextRequest, { params }: { params: { path: string[] } }) {
   const pathParts = params?.path || [];

@@ -6,6 +6,30 @@ import { useAuthStore } from "@/store/auth-store";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
+// Mock Account Database
+const MOCK_ACCOUNTS: Record<string, { role: string; user: any }> = {
+  "admin@infra.com": {
+    role: "ADMIN",
+    user: { id: 1, email: "admin@infra.com", username: "admin_user", first_name: "District", last_name: "Admin" }
+  },
+  "principal@infra.com": {
+    role: "PRINCIPAL",
+    user: { id: 2, email: "principal@infra.com", username: "principal_user", first_name: "School", last_name: "Principal" }
+  },
+  "staff@infra.com": {
+    role: "STAFF",
+    user: { id: 3, email: "staff@infra.com", username: "staff_user", first_name: "School", last_name: "Staff" }
+  },
+  "deo@infra.com": {
+    role: "DEO",
+    user: { id: 4, email: "deo@infra.com", username: "deo_user", first_name: "Data", last_name: "Operator" }
+  },
+  "contractor@infra.com": {
+    role: "CONTRACTOR",
+    user: { id: 5, email: "contractor@infra.com", username: "contractor_user", first_name: "Project", last_name: "Contractor" }
+  }
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -21,16 +45,15 @@ export default function LoginPage() {
 
     // Mock Login handling
     setTimeout(() => {
+        const account = MOCK_ACCOUNTS[email.toLowerCase()] || {
+          role: "PRINCIPAL",
+          user: { id: 99, email: email, username: "guest_user", first_name: "Guest", last_name: "User" }
+        };
+
         // Drop a mock cookie so the new Middleware detects an active session
         document.cookie = "access_token=mock-jwt-token; path=/;";
 
-        setAuth("mock-jwt-token", "PRINCIPAL", {
-            id: 1,
-            email: "principal@example.com",
-            username: "tech_principal",
-            first_name: "Tech",
-            last_name: "Principal"
-        });
+        setAuth("mock-jwt-token", account.role as any, account.user);
         setIsLoading(false);
         router.push("/dashboard");
     }, 1000);
@@ -114,11 +137,35 @@ export default function LoginPage() {
             </button>
           </form>
           
-          <div className="mt-8 pt-8 border-t border-[#bfc1b7] text-center">
-            <p className="text-[15px] text-[#4d4f46] mb-4">Are you a new district administrator?</p>
-            <Link href="/register" className="inline-flex items-center justify-center h-10 px-6 bg-[#1e1f23] text-white hover:bg-opacity-90 hover:text-[#F7A501] text-[15px] font-semibold rounded-[4px] transition-colors">
-              Create a new account 
-            </Link>
+          <div className="mt-8 pt-8 border-t border-[#bfc1b7] text-center flex flex-col gap-4">
+            <div>
+              <p className="text-[15px] text-[#4d4f46] mb-4">Are you a new district administrator?</p>
+              <Link href="/register" className="inline-flex items-center justify-center h-10 px-6 bg-[#1e1f23] text-white hover:bg-opacity-90 hover:text-[#F7A501] text-[15px] font-semibold rounded-[4px] transition-colors">
+                Create a new account 
+              </Link>
+            </div>
+
+            {/* Quick Login Section for Testing */}
+            <div className="mt-4 p-4 bg-[#eeefe9] rounded-lg border border-[#bfc1b7]">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#9ea096] mb-3 text-center">Development: Quick Login</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {Object.keys(MOCK_ACCOUNTS).map((mockEmail) => (
+                  <button
+                    key={mockEmail}
+                    type="button"
+                    onClick={() => {
+                      setEmail(mockEmail);
+                      setPassword("password");
+                      // Use a small delay to ensure state updates before form submission if we wanted to auto-submit, 
+                      // but manual click is better for demo control.
+                    }}
+                    className="px-3 py-1.5 bg-white border border-[#bfc1b7] rounded text-[12px] font-bold text-[#4d4f46] hover:border-[#F54E00] hover:text-[#F54E00] transition-colors"
+                  >
+                    {MOCK_ACCOUNTS[mockEmail].role}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           
         </div>

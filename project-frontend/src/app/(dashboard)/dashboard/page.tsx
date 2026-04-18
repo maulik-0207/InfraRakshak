@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
         {/* Dynamic Role Blocks */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {role === "PRINCIPAL" && (
+          {(role === "PRINCIPAL" || role === "STAFF") && (
             <div className="p-6 bg-[#eeefe9] rounded-lg border border-[#bfc1b7] group hover:border-[#F54E00] transition-colors cursor-pointer">
               <h3 className="font-bold text-lg text-[#23251d] mb-2 group-hover:text-[#F54E00] transition-colors">School Status</h3>
               <p className="text-sm text-[#4d4f46] leading-relaxed">Submit and track infrastructure reports for your institution.</p>
