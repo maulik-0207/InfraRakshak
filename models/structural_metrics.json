@@ -1,0 +1,47 @@
+{
+  "model": "RandomForestClassifier",
+  "category": "structural",
+  "target": "structural_severity",
+  "classes": [
+    "Danger",
+    "Safe",
+    "Warning"
+  ],
+  "n_features": 25,
+  "accuracy": 0.9991,
+  "macro_f1": 0.9925,
+  "weighted_f1": 0.9991,
+  "cv_mean_f1": 0.9993,
+  "per_class_f1": {
+    "Danger": 0.9904,
+    "Safe": 0.9877,
+    "Warning": 0.9995
+  },
+  "features": [
+    "crack_width_mm",
+    "condition_score",
+    "roof_leak_flag",
+    "building_age",
+    "flood_prone_area",
+    "crack_growth_rate",
+    "condition_trend",
+    "deterioration_rate",
+    "urgency_score",
+    "num_students",
+    "weeks_since_last_repair",
+    "days_since_repair",
+    "repair_done",
+    "girls_school",
+    "water_leak",
+    "wiring_exposed",
+    "issue_flag",
+    "material_type_Brick",
+    "material_type_Mixed",
+    "material_type_RCC",
+    "material_type_Temporary",
+    "weather_zone_Coastal",
+    "weather_zone_Dry",
+    "weather_zone_Heavy Rain",
+    "weather_zone_Tribal"
+  ]
+}
