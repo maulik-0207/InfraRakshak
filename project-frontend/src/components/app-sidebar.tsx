@@ -1,6 +1,7 @@
 "use client"
 
-import { Calendar, Home, Inbox, Search, Settings, ShieldCheck, ClipboardCheck, User, LogOut, Gavel } from "lucide-react"
+import { Calendar, Home, Inbox, Search, Settings, ClipboardCheck, User, LogOut, Gavel } from "lucide-react"
+import Image from "next/image"
 
 import {
   Sidebar,
@@ -41,10 +42,16 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex items-center justify-between p-6 pb-4">
-            <SidebarGroupLabel className="text-xl font-bold text-[#23251d]">
-              Infra<span className="text-[#F54E00]">Rakshak</span>
-            </SidebarGroupLabel>
+          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+            <Image
+              src="/logo.png"
+              alt="InfraRakshak Logo"
+              width={150}
+              height={55}
+              style={{ height: "auto" }}
+              className="object-contain"
+              priority
+            />
           </div>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
