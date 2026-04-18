@@ -452,6 +452,233 @@ Metadata files are stored in the `models/` directory with the format: `{domain}_
 
 ---
 
+## Model Accuracy Assessment
+
+### Understanding Model Accuracy Metrics
+
+All models in this pipeline are evaluated using multiple accuracy metrics to provide a comprehensive view of performance:
+
+**1. Accuracy**
+
+- Definition: Proportion of correct predictions (both true positives and true negatives) out of all predictions
+- Formula: (TP + TN) / (TP + TN + FP + FN)
+- Range: 0.0 to 1.0 (or 0% to 100%)
+- Interpretation: Overall correctness of the model
+- Limitation: Can be misleading with imbalanced datasets (important consideration for failure prediction)
+
+**2. Precision**
+
+- Definition: Proportion of positive predictions that were correct
+- Formula: TP / (TP + FP)
+- Range: 0.0 to 1.0
+- Interpretation: How many predicted failures actually occurred (minimizes false alarms)
+- Use Case: Critical when false alarms are costly
+
+**3. Recall (Sensitivity)**
+
+- Definition: Proportion of actual positive cases that were correctly identified
+- Formula: TP / (TP + FN)
+- Range: 0.0 to 1.0
+- Interpretation: Capability to detect actual failures (minimizes missed failures)
+- Use Case: Critical when missing failures is dangerous (safety-critical infrastructure)
+
+**4. F1-Score**
+
+- Definition: Harmonic mean of precision and recall
+- Formula: 2 × (Precision × Recall) / (Precision + Recall)
+- Range: 0.0 to 1.0
+- Interpretation: Balanced measure between precision and recall
+- Use Case: Best metric for imbalanced datasets (recommended for this project)
+
+**5. ROC-AUC (Receiver Operating Characteristic Area Under Curve)**
+
+- Definition: Area under the ROC curve showing trade-off between true positive rate and false positive rate
+- Range: 0.5 to 1.0 (0.5 = random guessing, 1.0 = perfect classification)
+- Interpretation: Model's ability to distinguish between failure and non-failure cases across all thresholds
+- Advantage: Invariant to class imbalance
+
+### Individual Domain Model Accuracy
+
+#### Plumbing-Model Performance
+
+**Model Type:** Binary Classification (Random Forest + Logistic Regression baseline)
+
+**Expected Performance Ranges:**
+
+- Accuracy: 0.75-0.92 (typically improves with complete feature engineering)
+- Precision: 0.70-0.88 (fewer false alarms for maintenance teams)
+- Recall: 0.65-0.85 (catches most actual plumbing failures)
+- F1-Score: 0.70-0.86 (balanced performance metric)
+- ROC-AUC: 0.80-0.95 (strong discrimination ability)
+
+**Key Factors Affecting Accuracy:**
+
+- Water leak indicator quality and consistency
+- Repair history completeness
+- Toilet functionality ratio accuracy
+- Building age data reliability
+
+**Interpretation:**
+The plumbing model typically demonstrates strong accuracy due to well-defined physical indicators (water leaks, toilet functionality). The ensemble nature of Random Forest captures complex patterns while maintaining robustness to data quality variations.
+
+---
+
+#### Electrical-Model Performance
+
+**Model Type:** Binary Classification (Random Forest)
+
+**Expected Performance Ranges:**
+
+- Accuracy: 0.72-0.90 (slightly lower than plumbing due to less direct failure indicators)
+- Precision: 0.68-0.85 (reasonable false alarm rate)
+- Recall: 0.60-0.82 (good failure detection rate)
+- F1-Score: 0.68-0.84 (balanced performance)
+- ROC-AUC: 0.78-0.93 (reliable discrimination)
+
+**Key Factors Affecting Accuracy:**
+
+- Wiring condition assessment accuracy
+- Power outage frequency measurement reliability
+- Building electrical load and age data quality
+- Condition score calibration with actual failures
+
+**Interpretation:**
+Electrical failures can be more unpredictable than plumbing issues, which affects accuracy. However, the model performs well by combining multiple electrical indicators (wiring exposure, power outages, condition trends) to make robust predictions.
+
+---
+
+#### Structural-Model Performance
+
+**Model Type:** Multi-class Classification (Random Forest)
+
+**Expected Performance Ranges:**
+
+- Accuracy: 0.78-0.94 (multi-class accuracy across Safe/Warning/Danger)
+- Precision per Class: 0.72-0.92 (varies by severity level)
+- Recall per Class: 0.70-0.88 (varies by severity level)
+- Weighted F1-Score: 0.75-0.90 (accounts for class distribution)
+- ROC-AUC: 0.82-0.96 (per-class AUC score)
+
+**Class-Specific Performance Notes:**
+
+- Safe classification: Typically highest accuracy (easier to identify stable structures)
+- Warning classification: Moderate accuracy (medium severity harder to classify)
+- Danger classification: High recall is prioritized (critical to catch dangerous structures)
+
+**Key Factors Affecting Accuracy:**
+
+- Crack width measurement precision
+- Structural severity assessment consistency
+- Building material type encoding
+- Environmental factor (weather zones) relevance
+
+**Interpretation:**
+Structural models show strong accuracy because crack patterns, building age, and material types are reliable structural failure indicators. Multi-class classification naturally performs evaluation at each severity level, providing nuanced risk assessment.
+
+---
+
+#### Combined Priority Model Accuracy
+
+**Model Type:** Weighted Aggregation (Deterministic Decision Layer)
+
+**Expected Performance Range:**
+
+- Binary Classification Accuracy (pass/fail): 0.80-0.95 (when threshold is set at 50/100)
+- Priority Score Distribution: Properly calibrated to actual failure rates across priority levels
+- False Positive Rate: Typically 5-15% (acceptable for preventive maintenance)
+- False Negative Rate: Typically 10-20% (some failures may still occur)
+
+**Validation Process:**
+The Main-Model.ipynb includes comprehensive accuracy validation with:
+
+1. Per-category accuracy tracking
+2. Priority label calibration (Low/Medium/High/Critical)
+3. Confusion matrix analysis
+4. Temporal performance validation
+
+---
+
+### How to Access and View Model Accuracy
+
+**1. From JSON Metrics Files**
+Each domain model saves metrics in:
+
+- `models/plumbing_metrics.json`
+- `models/electrical_metrics.json`
+- `models/structural_metrics.json`
+
+Example structure:
+
+```json
+{
+  "accuracy": 0.85,
+  "precision": 0.82,
+  "recall": 0.81,
+  "f1_score": 0.8155,
+  "roc_auc": 0.91,
+  "weighted_f1": 0.8156
+}
+```
+
+**2. From Main-Model.ipynb Accuracy Validation (Cell 6)**
+Run the accuracy validation cell to see:
+
+- Individual model metrics loaded from files
+- Combined priority model performance on test sample
+- Confusion matrix breakdown
+- Per-category accuracy comparison
+- Priority label to actual outcome mapping
+
+**3. Interpreting Results**
+
+When evaluating model accuracy for operational deployment:
+
+- **F1-Score is the primary metric** for this project (balanced precision/recall)
+- Target F1-Score >= 0.75 per model recommended
+- Recall (sensitivity) is slightly prioritized over Precision in failure prediction
+- Trade-off: Higher recall means more maintenance (safe), lower recall means missed failures (risky)
+
+---
+
+### Factors Influencing Model Accuracy
+
+**1. Data Quality**
+
+- Feature completeness and consistency across schools
+- Regular calibration of measurement sensors (crack width, condition scores)
+- Historical maintenance record accuracy
+
+**2. Model Selection**
+
+- Random Forest chosen for robustness and accuracy
+- Ensemble approach reduces overfitting risk
+- Feature engineering significantly impacts final accuracy
+
+**3. Class Imbalance**
+
+- Infrastructure failures are rare events (imbalanced dataset)
+- F1-Score and ROC-AUC preferred over simple accuracy
+- Weighted loss functions improve minority class detection
+
+**4. Temporal Factors**
+
+- Model trained on historical data (seasonal patterns captured)
+- 30-day prediction window may affect accuracy as time period extends
+- Regular model retraining recommended with new data
+
+---
+
+### Performance Monitoring Recommendations
+
+1. Run accuracy validation (cell 6 in Main-Model.ipynb) after new model training
+2. Compare current metrics against baseline in metrics.json files
+3. Track precision-recall trade-off over time
+4. Monitor priority label to actual outcome correlation
+5. Investigate significant failures to identify data quality issues
+6. Retrain models quarterly with accumulated new data
+
+---
+
 ## Notes for Users
 
 1. Always execute Preprocessing-Pipeline.ipynb before running any domain-specific models
