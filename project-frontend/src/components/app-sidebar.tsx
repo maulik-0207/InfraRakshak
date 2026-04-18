@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, Search, Settings, ClipboardCheck, User, LogOut, Gavel } from "lucide-react"
+import { Calendar, Home, Inbox, Search, School, Settings, ShieldCheck, ClipboardCheck, User, LogOut, Gavel } from "lucide-react"
 import Image from "next/image"
 
 import {
@@ -25,18 +25,62 @@ export function AppSidebar() {
   const handleLogout = () => {
     // Clear cookies
     document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     logout();
     router.push("/login");
   }
 
-  const navItems = [
-    { title: "Dashboard", url: "/dashboard", icon: Home },
-    ...(role === "CONTRACTOR" 
-      ? [{ title: "My Bids", url: "/my-contracts", icon: Gavel }] 
-      : [{ title: "Reports", url: "/reports", icon: Inbox }]),
-    { title: "Contracts", url: "/contracts", icon: ClipboardCheck },
-    { title: "Settings", url: "/settings", icon: Settings },
-  ]
+  const getNavItems = () => {
+    const base = [
+      { title: "Settings", url: "/settings", icon: Settings },
+    ];
+
+    switch (role) {
+      case "DEO":
+      case "ADMIN_STAFF":
+        return [
+          { title: "Dashboard", url: "/deo/dashboard", icon: Home },
+          { title: "Contracts", url: "/deo/contracts", icon: ClipboardCheck },
+          { title: "Admin Staff", url: "/deo/admin-staff", icon: ShieldCheck },
+          { title: "Contractors", url: "/deo/contractors", icon: ClipboardCheck },
+          { title: "Schools", url: "/deo/schools", icon: School },
+          { title: "Reports", url: "/deo/reports", icon: Calendar },
+          { title: "Notifications", url: "/deo/notifications", icon: Inbox },
+          { title: "Account", url: "/deo/account", icon: User },
+          ...base
+        ];
+      case "SCHOOL":
+        return [
+          { title: "Dashboard", url: "/school/dashboard", icon: Home },
+          { title: "Manage Staff", url: "/school/staff", icon: ShieldCheck },
+          { title: "Infrastructure", url: "/school/infrastructure", icon: ClipboardCheck },
+          { title: "Weekly Reports", url: "/school/reports", icon: Calendar },
+          { title: "Account", url: "/school/account", icon: User },
+          ...base
+        ];
+      case "SCHOOL_STAFF":
+        return [
+          { title: "Dashboard", url: "/staff/dashboard", icon: Home },
+          { title: "Weekly Reports", url: "/staff/reports", icon: Calendar },
+          { title: "Account", url: "/staff/account", icon: User },
+          ...base
+        ];
+      case "CONTRACTOR":
+        return [
+          { title: "Dashboard", url: "/contractor/dashboard", icon: Home },
+          { title: "Open Contracts", url: "/contractor/available", icon: Gavel },
+          { title: "Active Projects", url: "/contractor/projects", icon: ClipboardCheck },
+          { title: "Payments", url: "/contractor/payments", icon: Inbox },
+          { title: "Account", url: "/contractor/account", icon: User },
+          ...base
+        ];
+      default:
+        return [{ title: "Dashboard", url: "/dashboard", icon: Home }, ...base];
+    }
+  };
+
+  const navItems = getNavItems();
 
   return (
     <Sidebar>

@@ -7,30 +7,6 @@ import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-// Mock Account Database
-const MOCK_ACCOUNTS: Record<string, { role: string; user: any }> = {
-  "admin@infra.com": {
-    role: "ADMIN",
-    user: { id: 1, email: "admin@infra.com", username: "admin_user", first_name: "District", last_name: "Admin" }
-  },
-  "principal@infra.com": {
-    role: "PRINCIPAL",
-    user: { id: 2, email: "principal@infra.com", username: "principal_user", first_name: "School", last_name: "Principal" }
-  },
-  "staff@infra.com": {
-    role: "STAFF",
-    user: { id: 3, email: "staff@infra.com", username: "staff_user", first_name: "School", last_name: "Staff" }
-  },
-  "deo@infra.com": {
-    role: "DEO",
-    user: { id: 4, email: "deo@infra.com", username: "deo_user", first_name: "Data", last_name: "Operator" }
-  },
-  "contractor@infra.com": {
-    role: "CONTRACTOR",
-    user: { id: 5, email: "contractor@infra.com", username: "contractor_user", first_name: "Project", last_name: "Contractor" }
-  }
-};
-
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -39,25 +15,38 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
-    // Mock Login handling
-    setTimeout(() => {
-        const account = MOCK_ACCOUNTS[email.toLowerCase()] || {
-          role: "PRINCIPAL",
-          user: { id: 99, email: email, username: "guest_user", first_name: "Guest", last_name: "User" }
-        };
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-        // Drop a mock cookie so the new Middleware detects an active session
-        document.cookie = "access_token=mock-jwt-token; path=/;";
+      const data = await response.json();
 
-        setAuth("mock-jwt-token", account.role as any, account.user);
-        setIsLoading(false);
-        router.push("/dashboard");
-    }, 1000);
+      if (!response.ok) {
+        throw new Error(data.error?.detail || data.error?.non_field_errors?.[0] || "Invalid credentials. Please try again.");
+      }
+
+      // Update auth store with token, role, and user data
+      setAuth(data.access, data.role, data.user);
+      
+      // Redirect to the role-specific dashboard path provided by backend
+      // Data format from backend: "/deo/dashboard/" -> strip extra slashes if needed for Next.js router
+      const dashPath = data.redirect_url || "/dashboard";
+      router.push(dashPath);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -134,6 +123,12 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="p-3 rounded bg-red-50 border border-red-200 text-red-600 text-[14px] font-medium animate-in fade-in slide-in-from-top-1">
+                {error}
+              </div>
+            )}
+
             <button 
               type="submit" 
               disabled={isLoading}
@@ -149,28 +144,6 @@ export default function LoginPage() {
               <Link href="/register" className="inline-flex items-center justify-center h-10 px-6 bg-[#1e1f23] text-white hover:bg-opacity-90 hover:text-[#F7A501] text-[15px] font-semibold rounded-[4px] transition-colors">
                 Create a new account 
               </Link>
-            </div>
-
-            {/* Quick Login Section for Testing */}
-            <div className="mt-4 p-4 bg-[#eeefe9] rounded-lg border border-[#bfc1b7]">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#9ea096] mb-3 text-center">Development: Quick Login</p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {Object.keys(MOCK_ACCOUNTS).map((mockEmail) => (
-                  <button
-                    key={mockEmail}
-                    type="button"
-                    onClick={() => {
-                      setEmail(mockEmail);
-                      setPassword("password");
-                      // Use a small delay to ensure state updates before form submission if we wanted to auto-submit, 
-                      // but manual click is better for demo control.
-                    }}
-                    className="px-3 py-1.5 bg-white border border-[#bfc1b7] rounded text-[12px] font-bold text-[#4d4f46] hover:border-[#F54E00] hover:text-[#F54E00] transition-colors"
-                  >
-                    {MOCK_ACCOUNTS[mockEmail].role}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
           
