@@ -60,7 +60,4 @@ class Command(BaseCommand):
             
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"\nSeeding failed: {str(e)}"))
-            # Printing traceback for debugging during development
-            import traceback
-            traceback.print_exc()
             raise e
