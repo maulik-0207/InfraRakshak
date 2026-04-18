@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: InfraRakshak API
-  version: 1.0.0
+  version: 2.0.0
   description: |-
     Production API for the InfraRakshak school infrastructure monitoring platform.
 
@@ -14,16 +14,76 @@ info:
     Authorization: Bearer <access_token>
     ```
 paths:
-  /api/v1/accounts/admin-staff/:
+  /api/v1/accounts/auth/logout/:
+    post:
+      operationId: accounts_auth_logout_create
+      description: Blacklists the provided refresh token to securely end the session.
+      summary: User Logout
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '205':
+          description: Token blacklisted successfully.
+  /api/v1/accounts/dashboard/:
     get:
-      operationId: accounts_admin_staff_list
-      description: CRUD for AdminStaff profiles.
-      summary: List admin staff
+      operationId: accounts_dashboard_list
+      description: Returns role-specific statistics and overview data for the authenticated
+        user.
+      summary: Get Dashboard Statistics
+      tags:
+      - Dashboard
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dashboard'
+          description: ''
+  /api/v1/accounts/onboard/bulk/:
+    post:
+      operationId: accounts_onboard_bulk_create
+      description: Upload an Excel file to bulk-create accounts. DEOs can add Admin
+        Staff, Schools can add Staff, and Superusers can add DEOs.
+      summary: Bulk Onboarding (Excel)
+      tags:
+      - Onboarding
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BulkOnboardingRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          description: Accounts created successfully
+  /api/v1/accounts/profiles/admin-staff/:
+    get:
+      operationId: accounts_profiles_admin_staff_list
+      summary: List admin staff profiles
       parameters:
-      - in: query
-        name: district
-        schema:
-          type: string
       - name: ordering
         required: false
         in: query
@@ -43,7 +103,7 @@ paths:
         schema:
           type: string
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -52,25 +112,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedAdminStaffList'
+                $ref: '#/components/schemas/PaginatedAdminStaffProfileList'
           description: ''
     post:
-      operationId: accounts_admin_staff_create
-      description: CRUD for AdminStaff profiles.
-      summary: Create admin staff profile
+      operationId: accounts_profiles_admin_staff_create
       tags:
-      - Accounts
+      - accounts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminStaffRequest'
+              $ref: '#/components/schemas/AdminStaffProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AdminStaffRequest'
+              $ref: '#/components/schemas/AdminStaffProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AdminStaffRequest'
+              $ref: '#/components/schemas/AdminStaffProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -80,22 +138,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminStaff'
+                $ref: '#/components/schemas/AdminStaffProfile'
           description: ''
-  /api/v1/accounts/admin-staff/{id}/:
+  /api/v1/accounts/profiles/admin-staff/{id}/:
     get:
-      operationId: accounts_admin_staff_retrieve
-      description: CRUD for AdminStaff profiles.
-      summary: Get admin staff details
+      operationId: accounts_profiles_admin_staff_retrieve
+      summary: Get admin staff profile details
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Admin Staff.
+        description: A unique integer value identifying this admin staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -104,32 +161,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminStaff'
+                $ref: '#/components/schemas/AdminStaffProfile'
           description: ''
     put:
-      operationId: accounts_admin_staff_update
-      description: CRUD for AdminStaff profiles.
-      summary: Update admin staff
+      operationId: accounts_profiles_admin_staff_update
+      summary: Update admin staff profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Admin Staff.
+        description: A unique integer value identifying this admin staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminStaffRequest'
+              $ref: '#/components/schemas/AdminStaffProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AdminStaffRequest'
+              $ref: '#/components/schemas/AdminStaffProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AdminStaffRequest'
+              $ref: '#/components/schemas/AdminStaffProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -139,32 +195,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminStaff'
+                $ref: '#/components/schemas/AdminStaffProfile'
           description: ''
     patch:
-      operationId: accounts_admin_staff_partial_update
-      description: CRUD for AdminStaff profiles.
-      summary: Partially update admin staff
+      operationId: accounts_profiles_admin_staff_partial_update
+      summary: Partially update admin staff profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Admin Staff.
+        description: A unique integer value identifying this admin staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedAdminStaffRequest'
+              $ref: '#/components/schemas/PatchedAdminStaffProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedAdminStaffRequest'
+              $ref: '#/components/schemas/PatchedAdminStaffProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedAdminStaffRequest'
+              $ref: '#/components/schemas/PatchedAdminStaffProfileRequest'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -173,37 +228,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminStaff'
+                $ref: '#/components/schemas/AdminStaffProfile'
           description: ''
     delete:
-      operationId: accounts_admin_staff_destroy
-      description: CRUD for AdminStaff profiles.
+      operationId: accounts_profiles_admin_staff_destroy
       summary: Delete admin staff profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Admin Staff.
+        description: A unique integer value identifying this admin staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/accounts/contractors/:
+  /api/v1/accounts/profiles/contractors/:
     get:
-      operationId: accounts_contractors_list
-      description: CRUD for Contractor profiles.
-      summary: List contractors
+      operationId: accounts_profiles_contractors_list
+      summary: List contractor profiles
       parameters:
-      - in: query
-        name: is_available
-        schema:
-          type: boolean
       - name: ordering
         required: false
         in: query
@@ -222,22 +271,8 @@ paths:
         description: A search term.
         schema:
           type: string
-      - in: query
-        name: specialization
-        schema:
-          type: string
-          enum:
-          - ELECTRICAL
-          - MULTI
-          - PLUMBING
-          - STRUCTURAL
-        description: |-
-          * `PLUMBING` - Plumbing
-          * `ELECTRICAL` - Electrical
-          * `STRUCTURAL` - Structural
-          * `MULTI` - Multi-Discipline
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -246,35 +281,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedContractorList'
+                $ref: '#/components/schemas/PaginatedContractorProfileList'
           description: ''
     post:
-      operationId: accounts_contractors_create
-      description: CRUD for Contractor profiles.
-      summary: Create contractor profile
+      operationId: accounts_profiles_contractors_create
       tags:
-      - Accounts
+      - accounts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ContractorRequest'
-            examples:
-              CreateContractor:
-                value:
-                  user: 2
-                  company_name: BuildRight Infra Pvt Ltd
-                  license_number: GJ-CON-2024-00123
-                  specialization: PLUMBING
-                  experience_years: 8
-                  is_available: true
-                summary: Create Contractor
+              $ref: '#/components/schemas/ContractorProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ContractorRequest'
+              $ref: '#/components/schemas/ContractorProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ContractorRequest'
+              $ref: '#/components/schemas/ContractorProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -284,22 +307,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contractor'
+                $ref: '#/components/schemas/ContractorProfile'
           description: ''
-  /api/v1/accounts/contractors/{id}/:
+  /api/v1/accounts/profiles/contractors/{id}/:
     get:
-      operationId: accounts_contractors_retrieve
-      description: CRUD for Contractor profiles.
-      summary: Get contractor details
+      operationId: accounts_profiles_contractors_retrieve
+      summary: Get contractor profile details
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Contractor.
+        description: A unique integer value identifying this contractor profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -308,32 +330,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contractor'
+                $ref: '#/components/schemas/ContractorProfile'
           description: ''
     put:
-      operationId: accounts_contractors_update
-      description: CRUD for Contractor profiles.
-      summary: Update contractor
+      operationId: accounts_profiles_contractors_update
+      summary: Update contractor profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Contractor.
+        description: A unique integer value identifying this contractor profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ContractorRequest'
+              $ref: '#/components/schemas/ContractorProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ContractorRequest'
+              $ref: '#/components/schemas/ContractorProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ContractorRequest'
+              $ref: '#/components/schemas/ContractorProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -343,32 +364,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contractor'
+                $ref: '#/components/schemas/ContractorProfile'
           description: ''
     patch:
-      operationId: accounts_contractors_partial_update
-      description: CRUD for Contractor profiles.
-      summary: Partially update contractor
+      operationId: accounts_profiles_contractors_partial_update
+      summary: Partially update contractor profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Contractor.
+        description: A unique integer value identifying this contractor profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedContractorRequest'
+              $ref: '#/components/schemas/PatchedContractorProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedContractorRequest'
+              $ref: '#/components/schemas/PatchedContractorProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedContractorRequest'
+              $ref: '#/components/schemas/PatchedContractorProfileRequest'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -377,37 +397,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contractor'
+                $ref: '#/components/schemas/ContractorProfile'
           description: ''
     delete:
-      operationId: accounts_contractors_destroy
-      description: CRUD for Contractor profiles.
+      operationId: accounts_profiles_contractors_destroy
       summary: Delete contractor profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Contractor.
+        description: A unique integer value identifying this contractor profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/accounts/deos/:
+  /api/v1/accounts/profiles/deos/:
     get:
-      operationId: accounts_deos_list
-      description: CRUD for DEO (District Education Officer) profiles.
-      summary: List DEOs
+      operationId: accounts_profiles_deos_list
+      summary: List DEO profiles
       parameters:
-      - in: query
-        name: district
-        schema:
-          type: string
       - name: ordering
         required: false
         in: query
@@ -427,7 +441,7 @@ paths:
         schema:
           type: string
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -436,25 +450,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedDEOList'
+                $ref: '#/components/schemas/PaginatedDEOProfileList'
           description: ''
     post:
-      operationId: accounts_deos_create
-      description: CRUD for DEO (District Education Officer) profiles.
-      summary: Create DEO profile
+      operationId: accounts_profiles_deos_create
       tags:
-      - Accounts
+      - accounts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DEORequest'
+              $ref: '#/components/schemas/DEOProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/DEORequest'
+              $ref: '#/components/schemas/DEOProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/DEORequest'
+              $ref: '#/components/schemas/DEOProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -464,22 +476,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DEO'
+                $ref: '#/components/schemas/DEOProfile'
           description: ''
-  /api/v1/accounts/deos/{id}/:
+  /api/v1/accounts/profiles/deos/{id}/:
     get:
-      operationId: accounts_deos_retrieve
-      description: CRUD for DEO (District Education Officer) profiles.
-      summary: Get DEO details
+      operationId: accounts_profiles_deos_retrieve
+      summary: Get DEO profile details
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this DEO.
+        description: A unique integer value identifying this deo profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -488,32 +499,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DEO'
+                $ref: '#/components/schemas/DEOProfile'
           description: ''
     put:
-      operationId: accounts_deos_update
-      description: CRUD for DEO (District Education Officer) profiles.
-      summary: Update DEO
+      operationId: accounts_profiles_deos_update
+      summary: Update DEO profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this DEO.
+        description: A unique integer value identifying this deo profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DEORequest'
+              $ref: '#/components/schemas/DEOProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/DEORequest'
+              $ref: '#/components/schemas/DEOProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/DEORequest'
+              $ref: '#/components/schemas/DEOProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -523,32 +533,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DEO'
+                $ref: '#/components/schemas/DEOProfile'
           description: ''
     patch:
-      operationId: accounts_deos_partial_update
-      description: CRUD for DEO (District Education Officer) profiles.
-      summary: Partially update DEO
+      operationId: accounts_profiles_deos_partial_update
+      summary: Partially update DEO profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this DEO.
+        description: A unique integer value identifying this deo profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedDEORequest'
+              $ref: '#/components/schemas/PatchedDEOProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedDEORequest'
+              $ref: '#/components/schemas/PatchedDEOProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedDEORequest'
+              $ref: '#/components/schemas/PatchedDEOProfileRequest'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -557,228 +566,30 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DEO'
+                $ref: '#/components/schemas/DEOProfile'
           description: ''
     delete:
-      operationId: accounts_deos_destroy
-      description: CRUD for DEO (District Education Officer) profiles.
+      operationId: accounts_profiles_deos_destroy
       summary: Delete DEO profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this DEO.
+        description: A unique integer value identifying this deo profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/accounts/principals/:
+  /api/v1/accounts/profiles/schools/:
     get:
-      operationId: accounts_principals_list
-      description: CRUD for Principal profiles. Each principal is linked to a User
-        and School.
-      summary: List principals
-      parameters:
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - in: query
-        name: school
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      tags:
-      - Accounts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedPrincipalList'
-          description: ''
-    post:
-      operationId: accounts_principals_create
-      description: CRUD for Principal profiles. Each principal is linked to a User
-        and School.
-      summary: Create principal profile
-      tags:
-      - Accounts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PrincipalRequest'
-            examples:
-              CreatePrincipal:
-                value:
-                  user: 1
-                  school: 1
-                  joining_date: '2023-06-15'
-                  qualification: M.Ed
-                  experience_years: 12
-                summary: Create Principal
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PrincipalRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PrincipalRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Principal'
-          description: ''
-  /api/v1/accounts/principals/{id}/:
-    get:
-      operationId: accounts_principals_retrieve
-      description: CRUD for Principal profiles. Each principal is linked to a User
-        and School.
-      summary: Get principal details
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Principal.
-        required: true
-      tags:
-      - Accounts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Principal'
-          description: ''
-    put:
-      operationId: accounts_principals_update
-      description: CRUD for Principal profiles. Each principal is linked to a User
-        and School.
-      summary: Update principal
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Principal.
-        required: true
-      tags:
-      - Accounts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PrincipalRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PrincipalRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PrincipalRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Principal'
-          description: ''
-    patch:
-      operationId: accounts_principals_partial_update
-      description: CRUD for Principal profiles. Each principal is linked to a User
-        and School.
-      summary: Partially update principal
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Principal.
-        required: true
-      tags:
-      - Accounts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedPrincipalRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedPrincipalRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedPrincipalRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Principal'
-          description: ''
-    delete:
-      operationId: accounts_principals_destroy
-      description: CRUD for Principal profiles. Each principal is linked to a User
-        and School.
-      summary: Delete principal profile
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Principal.
-        required: true
-      tags:
-      - Accounts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/accounts/roles/:
-    get:
-      operationId: accounts_roles_list
-      description: Returns all available user roles. No authentication required for
-        listing.
-      summary: List all roles
+      operationId: accounts_profiles_schools_list
+      summary: List school profiles
       parameters:
       - name: ordering
         required: false
@@ -799,7 +610,7 @@ paths:
         schema:
           type: string
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -808,31 +619,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedRoleList'
+                $ref: '#/components/schemas/PaginatedSchoolAccountProfileList'
           description: ''
     post:
-      operationId: accounts_roles_create
-      description: Create a new role entry. Admin-only.
-      summary: Create a new role
+      operationId: accounts_profiles_schools_create
       tags:
-      - Accounts
+      - accounts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RoleRequest'
-            examples:
-              CreateRole:
-                value:
-                  name: INSPECTOR
-                  description: School infrastructure inspector
-                summary: Create Role
+              $ref: '#/components/schemas/SchoolAccountProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RoleRequest'
+              $ref: '#/components/schemas/SchoolAccountProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RoleRequest'
+              $ref: '#/components/schemas/SchoolAccountProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -842,22 +645,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Role'
+                $ref: '#/components/schemas/SchoolAccountProfile'
           description: ''
-  /api/v1/accounts/roles/{id}/:
+  /api/v1/accounts/profiles/schools/{id}/:
     get:
-      operationId: accounts_roles_retrieve
-      description: Retrieve a single role by its ID.
-      summary: Get role details
+      operationId: accounts_profiles_schools_retrieve
+      summary: Get school profile details
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Role.
+        description: A unique integer value identifying this school account profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -866,36 +668,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Role'
+                $ref: '#/components/schemas/SchoolAccountProfile'
           description: ''
     put:
-      operationId: accounts_roles_update
-      description: |-
-        CRUD operations for user roles.
-
-        Roles are used to control access across the platform.
-        Default roles: DEO, ADMIN_STAFF, PRINCIPAL, SCHOOL_STAFF, CONTRACTOR.
-      summary: Update a role
+      operationId: accounts_profiles_schools_update
+      summary: Update school profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Role.
+        description: A unique integer value identifying this school account profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RoleRequest'
+              $ref: '#/components/schemas/SchoolAccountProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RoleRequest'
+              $ref: '#/components/schemas/SchoolAccountProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RoleRequest'
+              $ref: '#/components/schemas/SchoolAccountProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -905,36 +702,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Role'
+                $ref: '#/components/schemas/SchoolAccountProfile'
           description: ''
     patch:
-      operationId: accounts_roles_partial_update
-      description: |-
-        CRUD operations for user roles.
-
-        Roles are used to control access across the platform.
-        Default roles: DEO, ADMIN_STAFF, PRINCIPAL, SCHOOL_STAFF, CONTRACTOR.
-      summary: Partially update a role
+      operationId: accounts_profiles_schools_partial_update
+      summary: Partially update school profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Role.
+        description: A unique integer value identifying this school account profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedRoleRequest'
+              $ref: '#/components/schemas/PatchedSchoolAccountProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedRoleRequest'
+              $ref: '#/components/schemas/PatchedSchoolAccountProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedRoleRequest'
+              $ref: '#/components/schemas/PatchedSchoolAccountProfileRequest'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -943,41 +735,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Role'
+                $ref: '#/components/schemas/SchoolAccountProfile'
           description: ''
     delete:
-      operationId: accounts_roles_destroy
-      description: |-
-        CRUD operations for user roles.
-
-        Roles are used to control access across the platform.
-        Default roles: DEO, ADMIN_STAFF, PRINCIPAL, SCHOOL_STAFF, CONTRACTOR.
-      summary: Delete a role
+      operationId: accounts_profiles_schools_destroy
+      summary: Delete school profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this Role.
+        description: A unique integer value identifying this school account profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/accounts/school-staff/:
+  /api/v1/accounts/profiles/staff/:
     get:
-      operationId: accounts_school_staff_list
-      description: CRUD for SchoolStaff profiles.
-      summary: List school staff
+      operationId: accounts_profiles_staff_list
+      summary: List school staff profiles
       parameters:
-      - in: query
-        name: designation
-        schema:
-          type: string
       - name: ordering
         required: false
         in: query
@@ -990,10 +772,6 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
-      - in: query
-        name: school
-        schema:
-          type: integer
       - name: search
         required: false
         in: query
@@ -1001,7 +779,7 @@ paths:
         schema:
           type: string
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -1010,25 +788,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedSchoolStaffList'
+                $ref: '#/components/schemas/PaginatedStaffProfileList'
           description: ''
     post:
-      operationId: accounts_school_staff_create
-      description: CRUD for SchoolStaff profiles.
-      summary: Create school staff profile
+      operationId: accounts_profiles_staff_create
       tags:
-      - Accounts
+      - accounts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SchoolStaffRequest'
+              $ref: '#/components/schemas/StaffProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/SchoolStaffRequest'
+              $ref: '#/components/schemas/StaffProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/SchoolStaffRequest'
+              $ref: '#/components/schemas/StaffProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -1038,22 +814,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SchoolStaff'
+                $ref: '#/components/schemas/StaffProfile'
           description: ''
-  /api/v1/accounts/school-staff/{id}/:
+  /api/v1/accounts/profiles/staff/{id}/:
     get:
-      operationId: accounts_school_staff_retrieve
-      description: CRUD for SchoolStaff profiles.
-      summary: Get school staff details
+      operationId: accounts_profiles_staff_retrieve
+      summary: Get school staff profile details
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this School Staff.
+        description: A unique integer value identifying this staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -1062,32 +837,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SchoolStaff'
+                $ref: '#/components/schemas/StaffProfile'
           description: ''
     put:
-      operationId: accounts_school_staff_update
-      description: CRUD for SchoolStaff profiles.
-      summary: Update school staff
+      operationId: accounts_profiles_staff_update
+      summary: Update school staff profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this School Staff.
+        description: A unique integer value identifying this staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SchoolStaffRequest'
+              $ref: '#/components/schemas/StaffProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/SchoolStaffRequest'
+              $ref: '#/components/schemas/StaffProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/SchoolStaffRequest'
+              $ref: '#/components/schemas/StaffProfileRequest'
         required: true
       security:
       - jwtAuth: []
@@ -1097,32 +871,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SchoolStaff'
+                $ref: '#/components/schemas/StaffProfile'
           description: ''
     patch:
-      operationId: accounts_school_staff_partial_update
-      description: CRUD for SchoolStaff profiles.
-      summary: Partially update school staff
+      operationId: accounts_profiles_staff_partial_update
+      summary: Partially update school staff profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this School Staff.
+        description: A unique integer value identifying this staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedSchoolStaffRequest'
+              $ref: '#/components/schemas/PatchedStaffProfileRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedSchoolStaffRequest'
+              $ref: '#/components/schemas/PatchedStaffProfileRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedSchoolStaffRequest'
+              $ref: '#/components/schemas/PatchedStaffProfileRequest'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -1131,41 +904,147 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SchoolStaff'
+                $ref: '#/components/schemas/StaffProfile'
           description: ''
     delete:
-      operationId: accounts_school_staff_destroy
-      description: CRUD for SchoolStaff profiles.
+      operationId: accounts_profiles_staff_destroy
       summary: Delete school staff profile
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: A unique integer value identifying this School Staff.
+        description: A unique integer value identifying this staff profile.
         required: true
       tags:
-      - Accounts
+      - Profiles
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
         '204':
           description: No response body
+  /api/v1/accounts/register/contractor/:
+    post:
+      operationId: accounts_register_contractor_create
+      description: Public endpoint for contractors to register their own account and
+        company profile.
+      summary: Contractor Self-Registration
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractorRegistrationRequest'
+            examples:
+              ContractorRegistration:
+                value:
+                  email: contact@buildwell_infra.com
+                  password: SecurePassword123
+                  company_name: BuildWell Infra Pvt Ltd
+                  license_number: LIC-2024-001
+                  phone_no: '9988776655'
+                summary: Contractor Registration
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContractorRegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContractorRegistrationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+              examples:
+                ContractorRegistration:
+                  value:
+                    email: contact@buildwell_infra.com
+                    password: SecurePassword123
+                    company_name: BuildWell Infra Pvt Ltd
+                    license_number: LIC-2024-001
+                    phone_no: '9988776655'
+                  summary: Contractor Registration
+          description: ''
+  /api/v1/accounts/register/school/:
+    post:
+      operationId: accounts_register_school_create
+      description: Public endpoint for schools to register their own account. Password
+        must be at least 8 characters.
+      summary: School Self-Registration
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolSelfRegistrationRequest'
+            examples:
+              SchoolRegistration:
+                value:
+                  email: principal@mg_highschool.edu
+                  password: SecurePassword123
+                  school_id: SCH-00123
+                  school_name: Mahatma Gandhi High School
+                  phone_no: '9876543210'
+                  district: Ahmedabad
+                  address: 123 Education Square, Main St
+                  school_type: Secondary
+                summary: School Registration
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SchoolSelfRegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SchoolSelfRegistrationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+              examples:
+                SchoolRegistration:
+                  value:
+                    email: principal@mg_highschool.edu
+                    password: SecurePassword123
+                    school_id: SCH-00123
+                    school_name: Mahatma Gandhi High School
+                    phone_no: '9876543210'
+                    district: Ahmedabad
+                    address: 123 Education Square, Main St
+                    school_type: Secondary
+                  summary: School Registration
+          description: ''
   /api/v1/accounts/users/:
     get:
       operationId: accounts_users_list
-      description: Paginated list of all users. Filterable by role and status.
+      description: Returns a paginated list of all users. Can be filtered by role,
+        status, and verification state.
       summary: List all users
       parameters:
       - in: query
         name: is_active
         schema:
           type: boolean
+        description: Filter by active status
       - in: query
         name: is_verified
         schema:
           type: boolean
+        description: Filter by email verification status
       - name: ordering
         required: false
         in: query
@@ -1181,7 +1060,8 @@ paths:
       - in: query
         name: role
         schema:
-          type: integer
+          type: string
+        description: Filter by user role (SCHOOL, DEO, etc.)
       - name: search
         required: false
         in: query
@@ -1202,58 +1082,35 @@ paths:
           description: ''
     post:
       operationId: accounts_users_create
-      description: |-
-        Create a new user account with email verification pending.
-
-        **Validation rules:**
-        - `username` must be unique
-        - `email` must be unique and valid
-        - `password` minimum 8 characters
-        - `password_confirm` must match `password`
-      summary: Register a new user
+      description: Standard user management.
       tags:
-      - Auth
+      - accounts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserRegisterRequest'
-            examples:
-              RegisterUser:
-                value:
-                  username: rajesh_kumar
-                  email: rajesh@example.com
-                  first_name: Rajesh
-                  last_name: Kumar
-                  phone_no: '+919876543210'
-                  role: 1
-                  password: SecureP@ss123
-                  password_confirm: SecureP@ss123
-                summary: Register User
+              $ref: '#/components/schemas/UserListRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/UserRegisterRequest'
+              $ref: '#/components/schemas/UserListRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/UserRegisterRequest'
+              $ref: '#/components/schemas/UserListRequest'
         required: true
       security:
       - jwtAuth: []
       - cookieAuth: []
-      - {}
       responses:
         '201':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserList'
-          description: User created successfully.
-        '400':
-          description: Validation error.
+          description: ''
   /api/v1/accounts/users/{id}/:
     get:
       operationId: accounts_users_retrieve
-      description: Retrieve full details for a single user.
+      description: Standard user management.
       summary: Get user details
       parameters:
       - in: path
@@ -1276,11 +1133,7 @@ paths:
           description: ''
     put:
       operationId: accounts_users_update
-      description: |-
-        User management endpoints.
-
-        - **POST** (create) is used for registration (no auth required).
-        - All other actions require authentication.
+      description: Standard user management.
       summary: Update user
       parameters:
       - in: path
@@ -1315,11 +1168,7 @@ paths:
           description: ''
     patch:
       operationId: accounts_users_partial_update
-      description: |-
-        User management endpoints.
-
-        - **POST** (create) is used for registration (no auth required).
-        - All other actions require authentication.
+      description: Standard user management.
       summary: Partially update user
       parameters:
       - in: path
@@ -1353,12 +1202,8 @@ paths:
           description: ''
     delete:
       operationId: accounts_users_destroy
-      description: |-
-        User management endpoints.
-
-        - **POST** (create) is used for registration (no auth required).
-        - All other actions require authentication.
-      summary: Deactivate user
+      description: Standard user management.
+      summary: Delete user
       parameters:
       - in: path
         name: id
@@ -1377,8 +1222,8 @@ paths:
   /api/v1/accounts/users/me/:
     get:
       operationId: accounts_users_me_retrieve
-      description: Returns the authenticated user's own profile.
-      summary: Get current user profile
+      description: Standard user management.
+      summary: Get current user info
       tags:
       - Auth
       security:
@@ -1389,35 +1234,51 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserDetail'
+                $ref: '#/components/schemas/UserList'
           description: ''
-  /api/v1/auth/token/:
-    post:
-      operationId: auth_token_create
-      description: |-
-        Takes a set of user credentials and returns an access and refresh JSON web
-        token pair to prove the authentication of those credentials.
+  /api/v1/accounts/users/verify-email/:
+    get:
+      operationId: accounts_users_verify_email_retrieve
+      description: Standard user management.
+      summary: Verify email address
       tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPairRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPairRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPairRequest'
-        required: true
+      - Auth
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenObtainPair'
+                $ref: '#/components/schemas/UserList'
           description: ''
+  /api/v1/auth/token/:
+    post:
+      operationId: auth_token_create
+      description: Authenticates a user by email and returns access/refresh tokens.
+        Also includes the user's role and a specialized dashboard redirect URL.
+      summary: User Login (JWT)
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          description: Login successful. Returns JWT tokens and user metadata.
+        '401':
+          description: Invalid credentials or unverified email.
   /api/v1/auth/token/refresh/:
     post:
       operationId: auth_token_refresh_create
@@ -1468,1484 +1329,6 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/contracts/assignments/:
-    get:
-      operationId: contracts_assignments_list
-      description: CRUD for contract assignments (one-to-one per contract).
-      summary: List assignments
-      parameters:
-      - in: query
-        name: contract
-        schema:
-          type: integer
-      - in: query
-        name: contractor
-        schema:
-          type: integer
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedContractAssignmentList'
-          description: ''
-    post:
-      operationId: contracts_assignments_create
-      description: Award a contract to the winning bidder. One assignment per contract.
-      summary: Assign contract to contractor
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractAssignmentRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractAssignmentRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractAssignmentRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractAssignment'
-          description: ''
-  /api/v1/contracts/assignments/{id}/:
-    get:
-      operationId: contracts_assignments_retrieve
-      description: CRUD for contract assignments (one-to-one per contract).
-      summary: Get assignment details
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Assignment.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractAssignment'
-          description: ''
-    put:
-      operationId: contracts_assignments_update
-      description: CRUD for contract assignments (one-to-one per contract).
-      summary: Update assignment
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Assignment.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractAssignmentRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractAssignmentRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractAssignmentRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractAssignment'
-          description: ''
-    patch:
-      operationId: contracts_assignments_partial_update
-      description: CRUD for contract assignments (one-to-one per contract).
-      summary: Partially update assignment
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Assignment.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedContractAssignmentRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedContractAssignmentRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedContractAssignmentRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractAssignment'
-          description: ''
-    delete:
-      operationId: contracts_assignments_destroy
-      description: CRUD for contract assignments (one-to-one per contract).
-      summary: Remove assignment
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Assignment.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/contracts/bids/:
-    get:
-      operationId: contracts_bids_list
-      description: CRUD for contract bids. Unique per (contract, contractor).
-      summary: List bids
-      parameters:
-      - in: query
-        name: contract
-        schema:
-          type: integer
-      - in: query
-        name: contractor
-        schema:
-          type: integer
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      - in: query
-        name: status
-        schema:
-          type: string
-          enum:
-          - ACCEPTED
-          - PENDING
-          - REJECTED
-          - WITHDRAWN
-        description: |-
-          * `PENDING` - Pending
-          * `ACCEPTED` - Accepted
-          * `REJECTED` - Rejected
-          * `WITHDRAWN` - Withdrawn
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedContractBidList'
-          description: ''
-    post:
-      operationId: contracts_bids_create
-      description: |-
-        Submit a bid on a contract.
-
-        **Constraints:**
-        - One bid per contractor per contract (unique constraint)
-        - `bid_amount` must be positive
-      summary: Submit a bid
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractBidRequest'
-            examples:
-              SubmitBid:
-                value:
-                  contract: 1
-                  contractor: 1
-                  bid_amount: '125000.00'
-                  estimated_days: 30
-                  proposal_text: We can complete the plumbing repair within 30 days
-                    using quality materials.
-                summary: Submit Bid
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractBidRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractBidRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractBid'
-          description: ''
-  /api/v1/contracts/bids/{id}/:
-    get:
-      operationId: contracts_bids_retrieve
-      description: CRUD for contract bids. Unique per (contract, contractor).
-      summary: Get bid details
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Bid.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractBid'
-          description: ''
-    put:
-      operationId: contracts_bids_update
-      description: CRUD for contract bids. Unique per (contract, contractor).
-      summary: Update bid
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Bid.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractBidRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractBidRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractBidRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractBid'
-          description: ''
-    patch:
-      operationId: contracts_bids_partial_update
-      description: CRUD for contract bids. Unique per (contract, contractor).
-      summary: Partially update bid
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Bid.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedContractBidRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedContractBidRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedContractBidRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractBid'
-          description: ''
-    delete:
-      operationId: contracts_bids_destroy
-      description: CRUD for contract bids. Unique per (contract, contractor).
-      summary: Withdraw bid
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Bid.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/contracts/contracts/:
-    get:
-      operationId: contracts_contracts_list
-      description: Paginated list of contracts. Filter by status, category, priority,
-        or school.
-      summary: List contracts
-      parameters:
-      - in: query
-        name: category
-        schema:
-          type: string
-          enum:
-          - ELECTRICAL
-          - PLUMBING
-          - STRUCTURAL
-        description: |-
-          * `PLUMBING` - Plumbing
-          * `ELECTRICAL` - Electrical
-          * `STRUCTURAL` - Structural
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - in: query
-        name: priority_level
-        schema:
-          type: string
-          enum:
-          - HIGH
-          - LOW
-          - MEDIUM
-        description: |-
-          * `LOW` - Low
-          * `MEDIUM` - Medium
-          * `HIGH` - High
-      - in: query
-        name: school
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      - in: query
-        name: status
-        schema:
-          type: string
-          enum:
-          - AWARDED
-          - CANCELLED
-          - COMPLETED
-          - IN_BIDDING
-          - IN_PROGRESS
-          - OPEN
-        description: |-
-          * `OPEN` - Open
-          * `IN_BIDDING` - In Bidding
-          * `AWARDED` - Awarded
-          * `IN_PROGRESS` - In Progress
-          * `COMPLETED` - Completed
-          * `CANCELLED` - Cancelled
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedContractListList'
-          description: ''
-    post:
-      operationId: contracts_contracts_create
-      description: |-
-        Create a new infrastructure contract for a school.
-
-        **Validation rules:**
-        - `estimated_cost` must be positive
-        - `bid_end_date` must be >= `bid_start_date`
-        - `category`: PLUMBING | ELECTRICAL | STRUCTURAL
-        - `status`: OPEN | IN_BIDDING | AWARDED | IN_PROGRESS | COMPLETED | CANCELLED
-      summary: Create a new contract
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractListRequest'
-            examples:
-              CreateContract:
-                value:
-                  school: 1
-                  title: Boys Toilet Block Plumbing Repair
-                  description: Complete overhaul of plumbing in boys toilet block.
-                  category: PLUMBING
-                  estimated_cost: '150000.00'
-                  priority_level: HIGH
-                  bid_start_date: '2025-04-25'
-                  bid_end_date: '2025-05-05'
-                  created_by: 1
-                summary: Create Contract
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractListRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractListRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractList'
-          description: ''
-  /api/v1/contracts/contracts/{id}/:
-    get:
-      operationId: contracts_contracts_retrieve
-      description: |-
-        Returns the contract with all nested lifecycle data:
-        bids, assignment, progress updates, work proofs, verifications, and payments.
-      summary: Get contract with full lifecycle
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractDetail'
-          description: ''
-    put:
-      operationId: contracts_contracts_update
-      description: |-
-        Contract CRUD with full lifecycle nesting on detail view.
-
-        **Lifecycle:** Open → In Bidding → Awarded → In Progress → Completed
-      summary: Update contract
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractListRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractListRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractListRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractList'
-          description: ''
-    patch:
-      operationId: contracts_contracts_partial_update
-      description: |-
-        Contract CRUD with full lifecycle nesting on detail view.
-
-        **Lifecycle:** Open → In Bidding → Awarded → In Progress → Completed
-      summary: Partially update contract
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedContractListRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedContractListRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedContractListRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractList'
-          description: ''
-    delete:
-      operationId: contracts_contracts_destroy
-      description: |-
-        Contract CRUD with full lifecycle nesting on detail view.
-
-        **Lifecycle:** Open → In Bidding → Awarded → In Progress → Completed
-      summary: Delete contract
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/contracts/payments/:
-    get:
-      operationId: contracts_payments_list
-      description: CRUD for contract payment records.
-      summary: List payments
-      parameters:
-      - in: query
-        name: contract
-        schema:
-          type: integer
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - in: query
-        name: payment_status
-        schema:
-          type: string
-          enum:
-          - PAID
-          - PARTIAL
-          - PENDING
-        description: |-
-          * `PENDING` - Pending
-          * `PARTIAL` - Partial
-          * `PAID` - Paid
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedContractPaymentList'
-          description: ''
-    post:
-      operationId: contracts_payments_create
-      description: '`amount` must be positive. Status: PENDING | PARTIAL | PAID.'
-      summary: Record payment
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractPaymentRequest'
-            examples:
-              RecordPayment:
-                value:
-                  contract: 1
-                  amount: '75000.00'
-                  payment_status: PARTIAL
-                  transaction_reference: UPI-REF-20250418-001
-                  paid_at: '2025-04-18T10:30:00Z'
-                summary: Record Payment
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractPaymentRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractPaymentRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractPayment'
-          description: ''
-  /api/v1/contracts/payments/{id}/:
-    get:
-      operationId: contracts_payments_retrieve
-      description: CRUD for contract payment records.
-      summary: Get payment details
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Payment.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractPayment'
-          description: ''
-    put:
-      operationId: contracts_payments_update
-      description: CRUD for contract payment records.
-      summary: Update payment
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Payment.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractPaymentRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContractPaymentRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContractPaymentRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractPayment'
-          description: ''
-    patch:
-      operationId: contracts_payments_partial_update
-      description: CRUD for contract payment records.
-      summary: Partially update payment
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Payment.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedContractPaymentRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedContractPaymentRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedContractPaymentRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractPayment'
-          description: ''
-    delete:
-      operationId: contracts_payments_destroy
-      description: CRUD for contract payment records.
-      summary: Delete payment
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Contract Payment.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/contracts/progress/:
-    get:
-      operationId: contracts_progress_list
-      description: CRUD for work progress updates on contracts.
-      summary: List progress updates
-      parameters:
-      - in: query
-        name: contract
-        schema:
-          type: integer
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      - in: query
-        name: status
-        schema:
-          type: string
-          enum:
-          - COMPLETED
-          - IN_PROGRESS
-          - NOT_STARTED
-          - ON_HOLD
-        description: |-
-          * `NOT_STARTED` - Not Started
-          * `IN_PROGRESS` - In Progress
-          * `ON_HOLD` - On Hold
-          * `COMPLETED` - Completed
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedWorkProgressList'
-          description: ''
-    post:
-      operationId: contracts_progress_create
-      description: '`progress_percentage` must be 0–100.'
-      summary: Submit progress update
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WorkProgressRequest'
-            examples:
-              ProgressUpdate:
-                value:
-                  contract: 1
-                  progress_percentage: 45
-                  status: IN_PROGRESS
-                  update_note: Pipe replacement 45% complete. New fixtures installed.
-                  updated_by: 1
-                summary: Progress Update
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkProgressRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkProgressRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProgress'
-          description: ''
-  /api/v1/contracts/progress/{id}/:
-    get:
-      operationId: contracts_progress_retrieve
-      description: CRUD for work progress updates on contracts.
-      summary: Get progress update
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Progress.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProgress'
-          description: ''
-    put:
-      operationId: contracts_progress_update
-      description: CRUD for work progress updates on contracts.
-      summary: Update progress
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Progress.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WorkProgressRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkProgressRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkProgressRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProgress'
-          description: ''
-    patch:
-      operationId: contracts_progress_partial_update
-      description: CRUD for work progress updates on contracts.
-      summary: Partially update progress
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Progress.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkProgressRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkProgressRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkProgressRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProgress'
-          description: ''
-    delete:
-      operationId: contracts_progress_destroy
-      description: CRUD for work progress updates on contracts.
-      summary: Delete progress update
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Progress.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/contracts/proofs/:
-    get:
-      operationId: contracts_proofs_list
-      description: |-
-        CRUD for work proof file uploads.
-
-        Accepts multipart/form-data for file uploads.
-        Files are stored at: `media/contracts/<contract_id>/<filename>`
-      summary: List work proofs
-      parameters:
-      - in: query
-        name: contract
-        schema:
-          type: integer
-      - in: query
-        name: file_type
-        schema:
-          type: string
-          enum:
-          - DOCUMENT
-          - IMAGE
-          - VIDEO
-        description: |-
-          * `IMAGE` - Image
-          * `VIDEO` - Video
-          * `DOCUMENT` - Document
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedWorkProofList'
-          description: ''
-    post:
-      operationId: contracts_proofs_create
-      description: |-
-        Upload evidence files for a contract.
-
-        **Request format:** `multipart/form-data`
-
-        **File constraints:**
-        - Maximum size: 10 MB
-        - Allowed types: jpg, jpeg, png, gif, webp, mp4, avi, mov, mkv, pdf, doc, docx
-        - `file_type`: IMAGE | VIDEO | DOCUMENT
-      summary: Upload work proof
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                contract:
-                  type: integer
-                  description: Contract ID
-                file:
-                  type: string
-                  format: binary
-                  description: File to upload (max 10MB)
-                file_type:
-                  type: string
-                  enum:
-                  - IMAGE
-                  - VIDEO
-                  - DOCUMENT
-                description:
-                  type: string
-                uploaded_by:
-                  type: integer
-                  description: User ID
-              required:
-              - contract
-              - file
-              - file_type
-              - uploaded_by
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProof'
-          description: ''
-  /api/v1/contracts/proofs/{id}/:
-    get:
-      operationId: contracts_proofs_retrieve
-      description: |-
-        CRUD for work proof file uploads.
-
-        Accepts multipart/form-data for file uploads.
-        Files are stored at: `media/contracts/<contract_id>/<filename>`
-      summary: Get work proof
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Proof.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProof'
-          description: ''
-    put:
-      operationId: contracts_proofs_update
-      description: |-
-        CRUD for work proof file uploads.
-
-        Accepts multipart/form-data for file uploads.
-        Files are stored at: `media/contracts/<contract_id>/<filename>`
-      summary: Update work proof
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Proof.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkProofRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkProofRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProof'
-          description: ''
-    patch:
-      operationId: contracts_proofs_partial_update
-      description: |-
-        CRUD for work proof file uploads.
-
-        Accepts multipart/form-data for file uploads.
-        Files are stored at: `media/contracts/<contract_id>/<filename>`
-      summary: Partially update work proof
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Proof.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkProofRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkProofRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkProof'
-          description: ''
-    delete:
-      operationId: contracts_proofs_destroy
-      description: |-
-        CRUD for work proof file uploads.
-
-        Accepts multipart/form-data for file uploads.
-        Files are stored at: `media/contracts/<contract_id>/<filename>`
-      summary: Delete work proof
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Proof.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/contracts/verifications/:
-    get:
-      operationId: contracts_verifications_list
-      description: CRUD for work verification records.
-      summary: List verifications
-      parameters:
-      - in: query
-        name: contract
-        schema:
-          type: integer
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      - in: query
-        name: verification_status
-        schema:
-          type: string
-          enum:
-          - APPROVED
-          - PENDING
-          - REJECTED
-        description: |-
-          * `PENDING` - Pending
-          * `APPROVED` - Approved
-          * `REJECTED` - Rejected
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedWorkVerificationList'
-          description: ''
-    post:
-      operationId: contracts_verifications_create
-      description: DEO or official verifies the completed work.
-      summary: Submit verification
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WorkVerificationRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkVerificationRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkVerificationRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkVerification'
-          description: ''
-  /api/v1/contracts/verifications/{id}/:
-    get:
-      operationId: contracts_verifications_retrieve
-      description: CRUD for work verification records.
-      summary: Get verification details
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Verification.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkVerification'
-          description: ''
-    put:
-      operationId: contracts_verifications_update
-      description: CRUD for work verification records.
-      summary: Update verification
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Verification.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WorkVerificationRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkVerificationRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkVerificationRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkVerification'
-          description: ''
-    patch:
-      operationId: contracts_verifications_partial_update
-      description: CRUD for work verification records.
-      summary: Partially update verification
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Verification.
-        required: true
-      tags:
-      - Contracts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkVerificationRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkVerificationRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkVerificationRequest'
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkVerification'
-          description: ''
-    delete:
-      operationId: contracts_verifications_destroy
-      description: CRUD for work verification records.
-      summary: Delete verification
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Work Verification.
-        required: true
-      tags:
-      - Contracts
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/v1/notifications/notifications/:
     get:
       operationId: notifications_notifications_list
@@ -2957,6 +1340,7 @@ paths:
         name: is_read
         schema:
           type: boolean
+        description: Filter by read status
       - name: ordering
         required: false
         in: query
@@ -2979,18 +1363,12 @@ paths:
         name: type
         schema:
           type: string
-          enum:
-          - ALERT
-          - CONTRACT
-          - REPORT
-        description: |-
-          * `REPORT` - Report
-          * `CONTRACT` - Contract
-          * `ALERT` - Alert
+        description: Filter by type (CONTRACT, SYSTEM, etc.)
       - in: query
         name: user
         schema:
           type: integer
+        description: Filter by User ID
       tags:
       - Notifications
       security:
@@ -3221,6 +1599,7 @@ paths:
         name: district
         schema:
           type: string
+        description: Filter by District name
       - name: ordering
         required: false
         in: query
@@ -3243,7 +1622,7 @@ paths:
         name: week_start_date
         schema:
           type: string
-          format: date
+        description: Filter by start date
       tags:
       - Predictions
       security:
@@ -3396,6 +1775,23 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/predictions/district-reports/export/:
+    get:
+      operationId: predictions_district_reports_export_retrieve
+      description: CRUD for district-level aggregated risk reports.
+      summary: Export district reports to Excel
+      tags:
+      - Predictions
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictReport'
+          description: ''
   /api/v1/predictions/issues/:
     get:
       operationId: predictions_issues_list
@@ -3617,14 +2013,7 @@ paths:
         name: overall_risk_level
         schema:
           type: string
-          enum:
-          - HIGH
-          - LOW
-          - MEDIUM
-        description: |-
-          * `LOW` - Low
-          * `MEDIUM` - Medium
-          * `HIGH` - High
+        description: Filter by risk (LOW, MEDIUM, HIGH, CRITICAL)
       - name: page
         required: false
         in: query
@@ -3635,6 +2024,7 @@ paths:
         name: school
         schema:
           type: integer
+        description: Filter by School ID
       - name: search
         required: false
         in: query
@@ -3645,6 +2035,7 @@ paths:
         name: weekly_report
         schema:
           type: integer
+        description: Filter by source Weekly Report ID
       tags:
       - Predictions
       security:
@@ -3811,6 +2202,27 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/predictions/reports/export/:
+    get:
+      operationId: predictions_reports_export_retrieve
+      description: |-
+        CRUD for ML-generated prediction reports.
+
+        Detail view includes nested prediction issues with severity scores
+        and recommended actions.
+      summary: Export predictions to Excel
+      tags:
+      - Predictions
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionReportList'
+          description: ''
   /api/v1/reports/electrical-reports/:
     get:
       operationId: reports_electrical_reports_list
@@ -4625,6 +3037,7 @@ paths:
         name: school
         schema:
           type: integer
+        description: Filter by School ID
       - name: search
         required: false
         in: query
@@ -4635,19 +3048,12 @@ paths:
         name: status
         schema:
           type: string
-          enum:
-          - DRAFT
-          - REVIEWED
-          - SUBMITTED
-        description: |-
-          * `DRAFT` - Draft
-          * `SUBMITTED` - Submitted
-          * `REVIEWED` - Reviewed
+        description: Filter by status (DRAFT, SUBMITTED, REVIEWED)
       - in: query
         name: week_start_date
         schema:
           type: string
-          format: date
+        description: Filter by start date (YYYY-MM-DD)
       tags:
       - Reports
       security:
@@ -4836,6 +3242,57 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/reports/weekly-reports/{id}/submit/:
+    post:
+      operationId: reports_weekly_reports_submit_create
+      description: Transitions a DRAFT report to SUBMITTED and locks it. Triggers
+        ML prediction.
+      summary: Submit and lock weekly report
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Weekly Report.
+        required: true
+      tags:
+      - Reports Workflow
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyReportDetail'
+          description: ''
+        '400':
+          description: Report not in DRAFT status or other error.
+  /api/v1/reports/weekly-reports/export/:
+    get:
+      operationId: reports_weekly_reports_export_retrieve
+      description: |-
+        CRUD for weekly infrastructure reports.
+
+        The detail view includes nested sub-reports (plumbing, electrical,
+        structural) and all associated issues.
+
+        **Recommended query optimization:**
+        Use `?expand=true` for nested data (detail view auto-expands).
+      summary: Export reports to Excel
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyReportList'
+          description: ''
   /api/v1/schools/infrastructure/:
     get:
       operationId: schools_infrastructure_list
@@ -5249,6 +3706,114 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/schools/registration-requests/:
+    get:
+      operationId: schools_registration_requests_list
+      description: |-
+        ViewSet for tracking school registration requests.
+        DEOs and Admins can approve or reject these requests.
+      summary: List registration requests
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Filter by status (PENDING, APPROVED, REJECTED)
+      tags:
+      - Schools Workflow
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSchoolRegistrationRequestList'
+          description: ''
+  /api/v1/schools/registration-requests/{id}/:
+    get:
+      operationId: schools_registration_requests_retrieve
+      description: |-
+        ViewSet for tracking school registration requests.
+        DEOs and Admins can approve or reject these requests.
+      summary: Get registration request details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Registration Request.
+        required: true
+      tags:
+      - Schools Workflow
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolRegistrationRequest'
+          description: ''
+  /api/v1/schools/registration-requests/{id}/process/:
+    post:
+      operationId: schools_registration_requests_process_create
+      description: Process a pending school registration request.
+      summary: Approve or Reject registration
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Registration Request.
+        required: true
+      tags:
+      - Schools Workflow
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - APPROVED
+                  - REJECTED
+                reason:
+                  type: string
+              required:
+              - status
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolRegistrationRequest'
+          description: ''
   /api/v1/schools/schools/:
     get:
       operationId: schools_schools_list
@@ -5260,10 +3825,12 @@ paths:
         name: block
         schema:
           type: string
+        description: Filter by block/tehsil
       - in: query
         name: district
         schema:
           type: string
+        description: Filter by district name
       - name: ordering
         required: false
         in: query
@@ -5280,14 +3847,7 @@ paths:
         name: school_type
         schema:
           type: string
-          enum:
-          - HIGHER_SECONDARY
-          - PRIMARY
-          - SECONDARY
-        description: |-
-          * `PRIMARY` - Primary
-          * `SECONDARY` - Secondary
-          * `HIGHER_SECONDARY` - Higher Secondary
+        description: Filter by type (PRIMARY, SECONDARY, etc.)
       - name: search
         required: false
         in: query
@@ -5474,30 +4034,50 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/schools/schools/export/:
+    get:
+      operationId: schools_schools_export_retrieve
+      description: |-
+        CRUD operations for schools.
+
+        Schools are uniquely identified by their UDISE code.
+      summary: Export schools to Excel
+      tags:
+      - Schools
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/School'
+          description: ''
 components:
   schemas:
-    AdminStaff:
+    AdminStaffProfile:
       type: object
-      description: Serializer for AdminStaff profile.
+      description: Serializer for Admin Staff profile.
       properties:
         id:
           type: integer
           readOnly: true
         user:
           type: integer
-        user_detail:
-          allOf:
-          - $ref: '#/components/schemas/UserList'
           readOnly: true
-        office_name:
+        email:
+          type: string
+          format: email
+          readOnly: true
+        parent_deo:
+          type: integer
+        full_name:
           type: string
           maxLength: 255
-        designation:
+        phone_no:
           type: string
-          maxLength: 100
-        district:
-          type: string
-          maxLength: 100
+          maxLength: 15
         created_at:
           type: string
           format: date-time
@@ -5508,36 +4088,31 @@ components:
           readOnly: true
       required:
       - created_at
-      - designation
-      - district
+      - email
+      - full_name
       - id
-      - office_name
+      - parent_deo
+      - phone_no
       - updated_at
       - user
-      - user_detail
-    AdminStaffRequest:
+    AdminStaffProfileRequest:
       type: object
-      description: Serializer for AdminStaff profile.
+      description: Serializer for Admin Staff profile.
       properties:
-        user:
+        parent_deo:
           type: integer
-        office_name:
+        full_name:
           type: string
           minLength: 1
           maxLength: 255
-        designation:
+        phone_no:
           type: string
           minLength: 1
-          maxLength: 100
-        district:
-          type: string
-          minLength: 1
-          maxLength: 100
+          maxLength: 15
       required:
-      - designation
-      - district
-      - office_name
-      - user
+      - full_name
+      - parent_deo
+      - phone_no
     AreaTypeEnum:
       enum:
       - RURAL
@@ -5568,6 +4143,28 @@ components:
         * `SAFE` - Safe
         * `MINOR_RISK` - Minor Risk
         * `UNSAFE` - Unsafe
+    BulkOnboardingRequest:
+      type: object
+      description: Serializer for Excel file upload.
+      properties:
+        file:
+          type: string
+          format: binary
+        role:
+          $ref: '#/components/schemas/BulkOnboardingRoleEnum'
+      required:
+      - file
+      - role
+    BulkOnboardingRoleEnum:
+      enum:
+      - ADMIN_STAFF
+      - STAFF
+      - DEO
+      type: string
+      description: |-
+        * `ADMIN_STAFF` - ADMIN_STAFF
+        * `STAFF` - STAFF
+        * `DEO` - DEO
     CategoryEnum:
       enum:
       - PLUMBING
@@ -5578,409 +4175,7 @@ components:
         * `PLUMBING` - Plumbing
         * `ELECTRICAL` - Electrical
         * `STRUCTURAL` - Structural
-    ContractAssignment:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        contract:
-          type: integer
-        contractor:
-          type: integer
-        bid:
-          type: integer
-        final_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        final_deadline:
-          type: string
-          format: date
-        assigned_at:
-          type: string
-          format: date-time
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - assigned_at
-      - bid
-      - contract
-      - contractor
-      - created_at
-      - final_amount
-      - final_deadline
-      - id
-    ContractAssignmentRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        contractor:
-          type: integer
-        bid:
-          type: integer
-        final_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        final_deadline:
-          type: string
-          format: date
-      required:
-      - bid
-      - contract
-      - contractor
-      - final_amount
-      - final_deadline
-    ContractBid:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        contract:
-          type: integer
-        contractor:
-          type: integer
-        bid_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        estimated_days:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          description: Estimated number of days to complete the work.
-        proposal_text:
-          type: string
-        status:
-          $ref: '#/components/schemas/ContractBidStatusEnum'
-        status_display:
-          type: string
-          readOnly: true
-        submitted_at:
-          type: string
-          format: date-time
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - bid_amount
-      - contract
-      - contractor
-      - created_at
-      - estimated_days
-      - id
-      - status_display
-      - submitted_at
-    ContractBidRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        contractor:
-          type: integer
-        bid_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        estimated_days:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          description: Estimated number of days to complete the work.
-        proposal_text:
-          type: string
-        status:
-          $ref: '#/components/schemas/ContractBidStatusEnum'
-      required:
-      - bid_amount
-      - contract
-      - contractor
-      - estimated_days
-    ContractBidStatusEnum:
-      enum:
-      - PENDING
-      - ACCEPTED
-      - REJECTED
-      - WITHDRAWN
-      type: string
-      description: |-
-        * `PENDING` - Pending
-        * `ACCEPTED` - Accepted
-        * `REJECTED` - Rejected
-        * `WITHDRAWN` - Withdrawn
-    ContractDetail:
-      type: object
-      description: Full contract with nested lifecycle data for detail view.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        school:
-          type: integer
-        prediction_report:
-          type: integer
-          nullable: true
-          description: The prediction report that triggered this contract.
-        title:
-          type: string
-          maxLength: 255
-        description:
-          type: string
-        category:
-          $ref: '#/components/schemas/CategoryEnum'
-        category_display:
-          type: string
-          readOnly: true
-        estimated_cost:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        priority_level:
-          $ref: '#/components/schemas/PriorityLevelEnum'
-        priority_display:
-          type: string
-          readOnly: true
-        status:
-          $ref: '#/components/schemas/StatusF0cEnum'
-        status_display:
-          type: string
-          readOnly: true
-        bid_start_date:
-          type: string
-          format: date
-          nullable: true
-        bid_end_date:
-          type: string
-          format: date
-          nullable: true
-        created_by:
-          type: integer
-          description: Admin or DEO who created this contract.
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-        bids:
-          type: array
-          items:
-            $ref: '#/components/schemas/ContractBid'
-          readOnly: true
-        assignment:
-          allOf:
-          - $ref: '#/components/schemas/ContractAssignment'
-          readOnly: true
-        progress_updates:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkProgress'
-          readOnly: true
-        proofs:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkProof'
-          readOnly: true
-        verifications:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkVerification'
-          readOnly: true
-        payments:
-          type: array
-          items:
-            $ref: '#/components/schemas/ContractPayment'
-          readOnly: true
-      required:
-      - assignment
-      - bids
-      - category
-      - category_display
-      - created_at
-      - created_by
-      - estimated_cost
-      - id
-      - payments
-      - priority_display
-      - progress_updates
-      - proofs
-      - school
-      - status_display
-      - title
-      - updated_at
-      - verifications
-    ContractList:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        school:
-          type: integer
-        prediction_report:
-          type: integer
-          nullable: true
-          description: The prediction report that triggered this contract.
-        title:
-          type: string
-          maxLength: 255
-        description:
-          type: string
-        category:
-          $ref: '#/components/schemas/CategoryEnum'
-        category_display:
-          type: string
-          readOnly: true
-        estimated_cost:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        priority_level:
-          $ref: '#/components/schemas/PriorityLevelEnum'
-        priority_display:
-          type: string
-          readOnly: true
-        status:
-          $ref: '#/components/schemas/StatusF0cEnum'
-        status_display:
-          type: string
-          readOnly: true
-        bid_start_date:
-          type: string
-          format: date
-          nullable: true
-        bid_end_date:
-          type: string
-          format: date
-          nullable: true
-        created_by:
-          type: integer
-          description: Admin or DEO who created this contract.
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - category
-      - category_display
-      - created_at
-      - created_by
-      - estimated_cost
-      - id
-      - priority_display
-      - school
-      - status_display
-      - title
-    ContractListRequest:
-      type: object
-      properties:
-        school:
-          type: integer
-        prediction_report:
-          type: integer
-          nullable: true
-          description: The prediction report that triggered this contract.
-        title:
-          type: string
-          minLength: 1
-          maxLength: 255
-        description:
-          type: string
-        category:
-          $ref: '#/components/schemas/CategoryEnum'
-        estimated_cost:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        priority_level:
-          $ref: '#/components/schemas/PriorityLevelEnum'
-        status:
-          $ref: '#/components/schemas/StatusF0cEnum'
-        bid_start_date:
-          type: string
-          format: date
-          nullable: true
-        bid_end_date:
-          type: string
-          format: date
-          nullable: true
-        created_by:
-          type: integer
-          description: Admin or DEO who created this contract.
-      required:
-      - category
-      - created_by
-      - estimated_cost
-      - school
-      - title
-    ContractPayment:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        contract:
-          type: integer
-        amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        payment_status:
-          $ref: '#/components/schemas/PaymentStatusEnum'
-        status_display:
-          type: string
-          readOnly: true
-        transaction_reference:
-          type: string
-          description: Bank or UPI transaction reference number.
-          maxLength: 255
-        paid_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - amount
-      - contract
-      - created_at
-      - id
-      - status_display
-    ContractPaymentRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        payment_status:
-          $ref: '#/components/schemas/PaymentStatusEnum'
-        transaction_reference:
-          type: string
-          description: Bank or UPI transaction reference number.
-          maxLength: 255
-        paid_at:
-          type: string
-          format: date-time
-          nullable: true
-      required:
-      - amount
-      - contract
-    Contractor:
+    ContractorProfile:
       type: object
       description: Serializer for Contractor profile.
       properties:
@@ -5989,9 +4184,10 @@ components:
           readOnly: true
         user:
           type: integer
-        user_detail:
-          allOf:
-          - $ref: '#/components/schemas/UserList'
+          readOnly: true
+        email:
+          type: string
+          format: email
           readOnly: true
         company_name:
           type: string
@@ -5999,21 +4195,9 @@ components:
         license_number:
           type: string
           maxLength: 100
-        specialization:
-          $ref: '#/components/schemas/SpecializationEnum'
-        specialization_display:
+        phone_no:
           type: string
-          readOnly: true
-        experience_years:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-        rating:
-          type: number
-          format: double
-          nullable: true
-        is_available:
-          type: boolean
+          maxLength: 15
         created_at:
           type: string
           format: date-time
@@ -6025,18 +4209,16 @@ components:
       required:
       - company_name
       - created_at
+      - email
       - id
       - license_number
-      - specialization_display
+      - phone_no
       - updated_at
       - user
-      - user_detail
-    ContractorRequest:
+    ContractorProfileRequest:
       type: object
       description: Serializer for Contractor profile.
       properties:
-        user:
-          type: integer
         company_name:
           type: string
           minLength: 1
@@ -6045,23 +4227,57 @@ components:
           type: string
           minLength: 1
           maxLength: 100
-        specialization:
-          $ref: '#/components/schemas/SpecializationEnum'
-        experience_years:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-        rating:
-          type: number
-          format: double
-          nullable: true
-        is_available:
-          type: boolean
+        phone_no:
+          type: string
+          minLength: 1
+          maxLength: 15
       required:
       - company_name
       - license_number
-      - user
-    DEO:
+      - phone_no
+    ContractorRegistrationRequest:
+      type: object
+      description: Serializer for Contractor self-registration.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        company_name:
+          type: string
+          minLength: 1
+        license_number:
+          type: string
+          minLength: 1
+        phone_no:
+          type: string
+          minLength: 1
+      required:
+      - company_name
+      - email
+      - license_number
+      - password
+      - phone_no
+    CustomTokenObtainPairRequest:
+      type: object
+      description: Overridden JWT serializer to include role and dashboard redirects.
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    DEOProfile:
       type: object
       description: Serializer for DEO profile.
       properties:
@@ -6070,9 +4286,10 @@ components:
           readOnly: true
         user:
           type: integer
-        user_detail:
-          allOf:
-          - $ref: '#/components/schemas/UserList'
+          readOnly: true
+        email:
+          type: string
+          format: email
           readOnly: true
         district:
           type: string
@@ -6090,25 +4307,42 @@ components:
       required:
       - created_at
       - district
+      - email
       - id
+      - office_address
       - updated_at
       - user
-      - user_detail
-    DEORequest:
+    DEOProfileRequest:
       type: object
       description: Serializer for DEO profile.
       properties:
-        user:
-          type: integer
         district:
           type: string
           minLength: 1
           maxLength: 100
         office_address:
           type: string
+          minLength: 1
       required:
       - district
-      - user
+      - office_address
+    Dashboard:
+      type: object
+      description: Serializer for dashboard summary response.
+      properties:
+        role:
+          type: string
+        email:
+          type: string
+          format: email
+        stats:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+      - email
+      - role
+      - stats
     DistrictReport:
       type: object
       properties:
@@ -6189,26 +4423,6 @@ components:
       - district
       - week_end_date
       - week_start_date
-    ElectricalRiskLevelEnum:
-      enum:
-      - LOW
-      - MEDIUM
-      - HIGH
-      type: string
-      description: |-
-        * `LOW` - Low
-        * `MEDIUM` - Medium
-        * `HIGH` - High
-    FileTypeEnum:
-      enum:
-      - IMAGE
-      - VIDEO
-      - DOCUMENT
-      type: string
-      description: |-
-        * `IMAGE` - Image
-        * `VIDEO` - Video
-        * `DOCUMENT` - Document
     IssueTypeEnum:
       enum:
       - PLUMBING
@@ -6229,6 +4443,28 @@ components:
         * `GOOD` - Good
         * `AVERAGE` - Average
         * `POOR` - Poor
+    LogoutRequestRequest:
+      type: object
+      description: Serializer for blacklisting a refresh token.
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: The refresh token to blacklist.
+      required:
+      - refresh
+    MaterialTypeEnum:
+      enum:
+      - Brick
+      - Mixed
+      - RCC
+      - Temporary
+      type: string
+      description: |-
+        * `Brick` - Brick
+        * `Mixed` - Mixed
+        * `RCC` - RCC
+        * `Temporary` - Temporary
     Notification:
       type: object
       properties:
@@ -6282,17 +4518,7 @@ components:
       - title
       - type
       - user
-    OverallRiskLevelEnum:
-      enum:
-      - LOW
-      - MEDIUM
-      - HIGH
-      type: string
-      description: |-
-        * `LOW` - Low
-        * `MEDIUM` - Medium
-        * `HIGH` - High
-    PaginatedAdminStaffList:
+    PaginatedAdminStaffProfileList:
       type: object
       required:
       - count
@@ -6314,8 +4540,8 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/AdminStaff'
-    PaginatedContractAssignmentList:
+            $ref: '#/components/schemas/AdminStaffProfile'
+    PaginatedContractorProfileList:
       type: object
       required:
       - count
@@ -6337,8 +4563,8 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/ContractAssignment'
-    PaginatedContractBidList:
+            $ref: '#/components/schemas/ContractorProfile'
+    PaginatedDEOProfileList:
       type: object
       required:
       - count
@@ -6360,99 +4586,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/ContractBid'
-    PaginatedContractListList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ContractList'
-    PaginatedContractPaymentList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ContractPayment'
-    PaginatedContractorList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Contractor'
-    PaginatedDEOList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/DEO'
+            $ref: '#/components/schemas/DEOProfile'
     PaginatedDistrictReportList:
       type: object
       required:
@@ -6545,7 +4679,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PredictionReportList'
-    PaginatedPrincipalList:
+    PaginatedSchoolAccountProfileList:
       type: object
       required:
       - count
@@ -6567,30 +4701,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/Principal'
-    PaginatedRoleList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Role'
+            $ref: '#/components/schemas/SchoolAccountProfile'
     PaginatedSchoolInfrastructureList:
       type: object
       required:
@@ -6660,7 +4771,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SchoolProfile'
-    PaginatedSchoolStaffList:
+    PaginatedSchoolRegistrationRequestList:
       type: object
       required:
       - count
@@ -6682,7 +4793,30 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/SchoolStaff'
+            $ref: '#/components/schemas/SchoolRegistrationRequest'
+    PaginatedStaffProfileList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffProfile'
     PaginatedUserListList:
       type: object
       required:
@@ -6821,190 +4955,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WeeklyStructuralReport'
-    PaginatedWorkProgressList:
+    PatchedAdminStaffProfileRequest:
       type: object
-      required:
-      - count
-      - results
+      description: Serializer for Admin Staff profile.
       properties:
-        count:
+        parent_deo:
           type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkProgress'
-    PaginatedWorkProofList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkProof'
-    PaginatedWorkVerificationList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkVerification'
-    PatchedAdminStaffRequest:
-      type: object
-      description: Serializer for AdminStaff profile.
-      properties:
-        user:
-          type: integer
-        office_name:
+        full_name:
           type: string
           minLength: 1
           maxLength: 255
-        designation:
+        phone_no:
           type: string
           minLength: 1
-          maxLength: 100
-        district:
-          type: string
-          minLength: 1
-          maxLength: 100
-    PatchedContractAssignmentRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        contractor:
-          type: integer
-        bid:
-          type: integer
-        final_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        final_deadline:
-          type: string
-          format: date
-    PatchedContractBidRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        contractor:
-          type: integer
-        bid_amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        estimated_days:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          description: Estimated number of days to complete the work.
-        proposal_text:
-          type: string
-        status:
-          $ref: '#/components/schemas/ContractBidStatusEnum'
-    PatchedContractListRequest:
-      type: object
-      properties:
-        school:
-          type: integer
-        prediction_report:
-          type: integer
-          nullable: true
-          description: The prediction report that triggered this contract.
-        title:
-          type: string
-          minLength: 1
-          maxLength: 255
-        description:
-          type: string
-        category:
-          $ref: '#/components/schemas/CategoryEnum'
-        estimated_cost:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        priority_level:
-          $ref: '#/components/schemas/PriorityLevelEnum'
-        status:
-          $ref: '#/components/schemas/StatusF0cEnum'
-        bid_start_date:
-          type: string
-          format: date
-          nullable: true
-        bid_end_date:
-          type: string
-          format: date
-          nullable: true
-        created_by:
-          type: integer
-          description: Admin or DEO who created this contract.
-    PatchedContractPaymentRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        amount:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        payment_status:
-          $ref: '#/components/schemas/PaymentStatusEnum'
-        transaction_reference:
-          type: string
-          description: Bank or UPI transaction reference number.
-          maxLength: 255
-        paid_at:
-          type: string
-          format: date-time
-          nullable: true
-    PatchedContractorRequest:
+          maxLength: 15
+    PatchedContractorProfileRequest:
       type: object
       description: Serializer for Contractor profile.
       properties:
-        user:
-          type: integer
         company_name:
           type: string
           minLength: 1
@@ -7013,30 +4981,21 @@ components:
           type: string
           minLength: 1
           maxLength: 100
-        specialization:
-          $ref: '#/components/schemas/SpecializationEnum'
-        experience_years:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-        rating:
-          type: number
-          format: double
-          nullable: true
-        is_available:
-          type: boolean
-    PatchedDEORequest:
+        phone_no:
+          type: string
+          minLength: 1
+          maxLength: 15
+    PatchedDEOProfileRequest:
       type: object
       description: Serializer for DEO profile.
       properties:
-        user:
-          type: integer
         district:
           type: string
           minLength: 1
           maxLength: 100
         office_address:
           type: string
+          minLength: 1
     PatchedDistrictReportRequest:
       type: object
       properties:
@@ -7098,7 +5057,7 @@ components:
           description: e.g., "Toilet Failure", "Wiring Damage"
           maxLength: 255
         severity:
-          $ref: '#/components/schemas/SeverityEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         score:
           type: number
           format: double
@@ -7112,17 +5071,17 @@ components:
         weekly_report:
           type: integer
         overall_risk_level:
-          $ref: '#/components/schemas/OverallRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         overall_score:
           type: number
           format: double
         plumbing_risk_level:
-          $ref: '#/components/schemas/PlumbingRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         plumbing_score:
           type: number
           format: double
         electrical_risk_level:
-          $ref: '#/components/schemas/ElectricalRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         electrical_score:
           type: number
           format: double
@@ -7140,35 +5099,33 @@ components:
           type: string
           description: Version identifier of the ML model used.
           maxLength: 50
-    PatchedPrincipalRequest:
+    PatchedSchoolAccountProfileRequest:
       type: object
-      description: Serializer for Principal profile — linked to a User and School.
+      description: Serializer for School Account profile.
       properties:
-        user:
-          type: integer
-        school:
-          type: integer
-        joining_date:
-          type: string
-          format: date
-          nullable: true
-        qualification:
-          type: string
-          maxLength: 255
-        experience_years:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-    PatchedRoleRequest:
-      type: object
-      description: Read/write serializer for the Role lookup table.
-      properties:
-        name:
+        school_id:
           type: string
           minLength: 1
           maxLength: 50
-        description:
+        school_name:
           type: string
+          minLength: 1
+          maxLength: 255
+        phone_no:
+          type: string
+          minLength: 1
+          maxLength: 15
+        district:
+          type: string
+          minLength: 1
+          maxLength: 100
+        address:
+          type: string
+          minLength: 1
+        school_type:
+          type: string
+          minLength: 1
+          maxLength: 50
     PatchedSchoolInfrastructureRequest:
       type: object
       description: Serializer for infrastructure surveys with condition display fields.
@@ -7218,6 +5175,11 @@ components:
           type: boolean
         wall_cracks:
           type: boolean
+        crack_width_mm:
+          type: number
+          format: double
+          description: Maximum crack width measured in millimeters (required for ML
+            structural model).
         toilet_cleanliness:
           type: integer
           maximum: 32767
@@ -7324,58 +5286,53 @@ components:
           nullable: true
         school_type:
           $ref: '#/components/schemas/SchoolTypeEnum'
-    PatchedSchoolStaffRequest:
+        weather_zone:
+          $ref: '#/components/schemas/WeatherZoneEnum'
+        material_type:
+          $ref: '#/components/schemas/MaterialTypeEnum'
+        building_age:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Age of the school building in years.
+        is_girls_school:
+          type: boolean
+          description: Whether the school is specifically for girls (impacts priority
+            weights).
+        flood_prone_area:
+          type: boolean
+          description: Whether the school is in a geo-spatially identified flood zone.
+    PatchedStaffProfileRequest:
       type: object
-      description: Serializer for SchoolStaff profile.
+      description: Serializer for School Staff profile.
       properties:
-        user:
+        parent_school:
           type: integer
-        school:
-          type: integer
-        designation:
+        full_name:
           type: string
           minLength: 1
-          description: e.g., Clerk, Supervisor, Technician
-          maxLength: 100
+          maxLength: 255
+        phone_no:
+          type: string
+          minLength: 1
+          maxLength: 15
     PatchedUserDetailRequest:
       type: object
-      description: Full user representation for detail / update views.
+      description: Full user representation.
       properties:
-        username:
-          type: string
-          minLength: 1
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
         email:
           type: string
           format: email
           minLength: 1
           maxLength: 254
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-        phone_no:
-          type: string
-          maxLength: 15
         role:
-          type: integer
-          nullable: true
+          $ref: '#/components/schemas/Role04bEnum'
         is_verified:
           type: boolean
         is_active:
           type: boolean
-          title: Active
-          description: Designates whether this user should be treated as active. Unselect
-            this instead of deleting accounts.
         is_staff:
           type: boolean
-          title: Staff status
-          description: Designates whether the user can log into this admin site.
     PatchedWeeklyElectricalReportRequest:
       type: object
       properties:
@@ -7417,7 +5374,7 @@ components:
         issue_type:
           $ref: '#/components/schemas/IssueTypeEnum'
         severity:
-          $ref: '#/components/schemas/SeverityEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         description:
           type: string
           minLength: 1
@@ -7508,78 +5465,6 @@ components:
           type: boolean
         remarks:
           type: string
-    PatchedWorkProgressRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        progress_percentage:
-          type: integer
-          maximum: 32767
-          minimum: 0
-          description: Percentage of work completed (0–100).
-        status:
-          $ref: '#/components/schemas/WorkProgressStatusEnum'
-        update_note:
-          type: string
-        updated_by:
-          type: integer
-    PatchedWorkProofRequest:
-      type: object
-      description: |-
-        Serializer for work proof file uploads.
-
-        Accepts multipart/form-data with file upload.
-        File constraints: max 10MB, allowed types: jpg, png, gif, mp4, pdf, doc, docx.
-      properties:
-        contract:
-          type: integer
-        file:
-          type: string
-          format: binary
-          description: Upload image, video, or document as proof of work.
-        file_type:
-          $ref: '#/components/schemas/FileTypeEnum'
-        description:
-          type: string
-        uploaded_by:
-          type: integer
-    PatchedWorkVerificationRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        verified_by:
-          type: integer
-          description: DEO or official who verified the work.
-        verification_status:
-          $ref: '#/components/schemas/VerificationStatusEnum'
-        remarks:
-          type: string
-        verified_at:
-          type: string
-          format: date-time
-          nullable: true
-    PaymentStatusEnum:
-      enum:
-      - PENDING
-      - PARTIAL
-      - PAID
-      type: string
-      description: |-
-        * `PENDING` - Pending
-        * `PARTIAL` - Partial
-        * `PAID` - Paid
-    PlumbingRiskLevelEnum:
-      enum:
-      - LOW
-      - MEDIUM
-      - HIGH
-      type: string
-      description: |-
-        * `LOW` - Low
-        * `MEDIUM` - Medium
-        * `HIGH` - High
     PredictionIssues:
       type: object
       properties:
@@ -7598,7 +5483,7 @@ components:
           description: e.g., "Toilet Failure", "Wiring Damage"
           maxLength: 255
         severity:
-          $ref: '#/components/schemas/SeverityEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         severity_display:
           type: string
           readOnly: true
@@ -7632,7 +5517,7 @@ components:
           description: e.g., "Toilet Failure", "Wiring Damage"
           maxLength: 255
         severity:
-          $ref: '#/components/schemas/SeverityEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         score:
           type: number
           format: double
@@ -7654,7 +5539,7 @@ components:
         weekly_report:
           type: integer
         overall_risk_level:
-          $ref: '#/components/schemas/OverallRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         overall_risk_display:
           type: string
           readOnly: true
@@ -7662,12 +5547,12 @@ components:
           type: number
           format: double
         plumbing_risk_level:
-          $ref: '#/components/schemas/PlumbingRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         plumbing_score:
           type: number
           format: double
         electrical_risk_level:
-          $ref: '#/components/schemas/ElectricalRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         electrical_score:
           type: number
           format: double
@@ -7722,7 +5607,7 @@ components:
         weekly_report:
           type: integer
         overall_risk_level:
-          $ref: '#/components/schemas/OverallRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         overall_risk_display:
           type: string
           readOnly: true
@@ -7730,12 +5615,12 @@ components:
           type: number
           format: double
         plumbing_risk_level:
-          $ref: '#/components/schemas/PlumbingRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         plumbing_score:
           type: number
           format: double
         electrical_risk_level:
-          $ref: '#/components/schemas/ElectricalRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         electrical_score:
           type: number
           format: double
@@ -7771,17 +5656,17 @@ components:
         weekly_report:
           type: integer
         overall_risk_level:
-          $ref: '#/components/schemas/OverallRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         overall_score:
           type: number
           format: double
         plumbing_risk_level:
-          $ref: '#/components/schemas/PlumbingRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         plumbing_score:
           type: number
           format: double
         electrical_risk_level:
-          $ref: '#/components/schemas/ElectricalRiskLevelEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         electrical_score:
           type: number
           format: double
@@ -7802,111 +5687,20 @@ components:
       required:
       - school
       - weekly_report
-    Principal:
-      type: object
-      description: Serializer for Principal profile — linked to a User and School.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        user:
-          type: integer
-        user_detail:
-          allOf:
-          - $ref: '#/components/schemas/UserList'
-          readOnly: true
-        school:
-          type: integer
-        joining_date:
-          type: string
-          format: date
-          nullable: true
-        qualification:
-          type: string
-          maxLength: 255
-        experience_years:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - created_at
-      - id
-      - school
-      - updated_at
-      - user
-      - user_detail
-    PrincipalRequest:
-      type: object
-      description: Serializer for Principal profile — linked to a User and School.
-      properties:
-        user:
-          type: integer
-        school:
-          type: integer
-        joining_date:
-          type: string
-          format: date
-          nullable: true
-        qualification:
-          type: string
-          maxLength: 255
-        experience_years:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-      required:
-      - school
-      - user
-    PriorityLevelEnum:
+    Role04bEnum:
       enum:
-      - LOW
-      - MEDIUM
-      - HIGH
+      - SCHOOL
+      - DEO
+      - CONTRACTOR
+      - ADMIN_STAFF
+      - STAFF
       type: string
       description: |-
-        * `LOW` - Low
-        * `MEDIUM` - Medium
-        * `HIGH` - High
-    Role:
-      type: object
-      description: Read/write serializer for the Role lookup table.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          maxLength: 50
-        description:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - created_at
-      - id
-      - name
-    RoleRequest:
-      type: object
-      description: Read/write serializer for the Role lookup table.
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 50
-        description:
-          type: string
-      required:
-      - name
+        * `SCHOOL` - School
+        * `DEO` - District Education Officer
+        * `CONTRACTOR` - Contractor
+        * `ADMIN_STAFF` - Admin Staff
+        * `STAFF` - School Staff
     School:
       type: object
       description: Read/write serializer for schools.
@@ -7950,6 +5744,25 @@ components:
         school_type_display:
           type: string
           readOnly: true
+        weather_zone:
+          $ref: '#/components/schemas/WeatherZoneEnum'
+        material_type:
+          $ref: '#/components/schemas/MaterialTypeEnum'
+        building_age:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Age of the school building in years.
+        is_girls_school:
+          type: boolean
+          description: Whether the school is specifically for girls (impacts priority
+            weights).
+        flood_prone_area:
+          type: boolean
+          description: Whether the school is in a geo-spatially identified flood zone.
+        is_active:
+          type: boolean
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -7963,11 +5776,97 @@ components:
       - created_at
       - district
       - id
+      - is_active
       - name
       - pincode
       - school_type_display
       - udise_code
       - updated_at
+    SchoolAccountProfile:
+      type: object
+      description: Serializer for School Account profile.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        school_id:
+          type: string
+          maxLength: 50
+        school_name:
+          type: string
+          maxLength: 255
+        phone_no:
+          type: string
+          maxLength: 15
+        district:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        school_type:
+          type: string
+          maxLength: 50
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - address
+      - created_at
+      - district
+      - email
+      - id
+      - phone_no
+      - school_id
+      - school_name
+      - school_type
+      - updated_at
+      - user
+    SchoolAccountProfileRequest:
+      type: object
+      description: Serializer for School Account profile.
+      properties:
+        school_id:
+          type: string
+          minLength: 1
+          maxLength: 50
+        school_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        phone_no:
+          type: string
+          minLength: 1
+          maxLength: 15
+        district:
+          type: string
+          minLength: 1
+          maxLength: 100
+        address:
+          type: string
+          minLength: 1
+        school_type:
+          type: string
+          minLength: 1
+          maxLength: 50
+      required:
+      - address
+      - district
+      - phone_no
+      - school_id
+      - school_name
+      - school_type
     SchoolInfrastructure:
       type: object
       description: Serializer for infrastructure surveys with condition display fields.
@@ -8026,6 +5925,11 @@ components:
           type: boolean
         wall_cracks:
           type: boolean
+        crack_width_mm:
+          type: number
+          format: double
+          description: Maximum crack width measured in millimeters (required for ML
+            structural model).
         toilet_cleanliness:
           type: integer
           maximum: 32767
@@ -8104,6 +6008,11 @@ components:
           type: boolean
         wall_cracks:
           type: boolean
+        crack_width_mm:
+          type: number
+          format: double
+          description: Maximum crack width measured in millimeters (required for ML
+            structural model).
         toilet_cleanliness:
           type: integer
           maximum: 32767
@@ -8242,6 +6151,67 @@ components:
       required:
       - academic_year
       - school
+    SchoolRegistrationRequest:
+      type: object
+      description: Serializer for tracking the school registration workflow.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        school:
+          type: integer
+        school_name:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SchoolRegistrationStatusEnum'
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        submitted_by:
+          type: integer
+          readOnly: true
+        submitted_by_name:
+          type: string
+          readOnly: true
+        rejection_reason:
+          type: string
+        processed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        processed_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - processed_at
+      - processed_by
+      - school
+      - school_name
+      - status
+      - status_display
+      - submitted_by
+      - submitted_by_name
+    SchoolRegistrationStatusEnum:
+      enum:
+      - PENDING
+      - APPROVED
+      - REJECTED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `APPROVED` - Approved
+        * `REJECTED` - Rejected
     SchoolRequest:
       type: object
       description: Read/write serializer for schools.
@@ -8284,64 +6254,67 @@ components:
           nullable: true
         school_type:
           $ref: '#/components/schemas/SchoolTypeEnum'
+        weather_zone:
+          $ref: '#/components/schemas/WeatherZoneEnum'
+        material_type:
+          $ref: '#/components/schemas/MaterialTypeEnum'
+        building_age:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Age of the school building in years.
+        is_girls_school:
+          type: boolean
+          description: Whether the school is specifically for girls (impacts priority
+            weights).
+        flood_prone_area:
+          type: boolean
+          description: Whether the school is in a geo-spatially identified flood zone.
       required:
       - address
       - district
       - name
       - pincode
       - udise_code
-    SchoolStaff:
+    SchoolSelfRegistrationRequest:
       type: object
-      description: Serializer for SchoolStaff profile.
+      description: Serializer for School self-registration.
       properties:
-        id:
-          type: integer
-          readOnly: true
-        user:
-          type: integer
-        user_detail:
-          allOf:
-          - $ref: '#/components/schemas/UserList'
-          readOnly: true
-        school:
-          type: integer
-        designation:
+        email:
           type: string
-          description: e.g., Clerk, Supervisor, Technician
-          maxLength: 100
-        created_at:
+          format: email
+          minLength: 1
+        password:
           type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - created_at
-      - designation
-      - id
-      - school
-      - updated_at
-      - user
-      - user_detail
-    SchoolStaffRequest:
-      type: object
-      description: Serializer for SchoolStaff profile.
-      properties:
-        user:
-          type: integer
-        school:
-          type: integer
-        designation:
+          writeOnly: true
+          minLength: 8
+        school_id:
           type: string
           minLength: 1
-          description: e.g., Clerk, Supervisor, Technician
-          maxLength: 100
+        school_name:
+          type: string
+          minLength: 1
+        phone_no:
+          type: string
+          minLength: 1
+        district:
+          type: string
+          minLength: 1
+        address:
+          type: string
+          minLength: 1
+        school_type:
+          type: string
+          minLength: 1
       required:
-      - designation
-      - school
-      - user
+      - address
+      - district
+      - email
+      - password
+      - phone_no
+      - school_id
+      - school_name
+      - school_type
     SchoolTypeEnum:
       enum:
       - PRIMARY
@@ -8352,28 +6325,63 @@ components:
         * `PRIMARY` - Primary
         * `SECONDARY` - Secondary
         * `HIGHER_SECONDARY` - Higher Secondary
-    SeverityEnum:
-      enum:
-      - LOW
-      - MEDIUM
-      - HIGH
-      type: string
-      description: |-
-        * `LOW` - Low
-        * `MEDIUM` - Medium
-        * `HIGH` - High
-    SpecializationEnum:
-      enum:
-      - PLUMBING
-      - ELECTRICAL
-      - STRUCTURAL
-      - MULTI
-      type: string
-      description: |-
-        * `PLUMBING` - Plumbing
-        * `ELECTRICAL` - Electrical
-        * `STRUCTURAL` - Structural
-        * `MULTI` - Multi-Discipline
+    StaffProfile:
+      type: object
+      description: Serializer for School Staff profile.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        parent_school:
+          type: integer
+        full_name:
+          type: string
+          maxLength: 255
+        phone_no:
+          type: string
+          maxLength: 15
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - full_name
+      - id
+      - parent_school
+      - phone_no
+      - updated_at
+      - user
+    StaffProfileRequest:
+      type: object
+      description: Serializer for School Staff profile.
+      properties:
+        parent_school:
+          type: integer
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        phone_no:
+          type: string
+          minLength: 1
+          maxLength: 15
+      required:
+      - full_name
+      - parent_school
+      - phone_no
     Status017Enum:
       enum:
       - DRAFT
@@ -8384,22 +6392,6 @@ components:
         * `DRAFT` - Draft
         * `SUBMITTED` - Submitted
         * `REVIEWED` - Reviewed
-    StatusF0cEnum:
-      enum:
-      - OPEN
-      - IN_BIDDING
-      - AWARDED
-      - IN_PROGRESS
-      - COMPLETED
-      - CANCELLED
-      type: string
-      description: |-
-        * `OPEN` - Open
-        * `IN_BIDDING` - In Bidding
-        * `AWARDED` - Awarded
-        * `IN_PROGRESS` - In Progress
-        * `COMPLETED` - Completed
-        * `CANCELLED` - Cancelled
     StructuralRiskLevelEnum:
       enum:
       - LOW
@@ -8410,32 +6402,6 @@ components:
         * `LOW` - Low
         * `MEDIUM` - Medium
         * `HIGH` - High
-    TokenObtainPair:
-      type: object
-      properties:
-        access:
-          type: string
-          readOnly: true
-        refresh:
-          type: string
-          readOnly: true
-      required:
-      - access
-      - refresh
-    TokenObtainPairRequest:
-      type: object
-      properties:
-        username:
-          type: string
-          writeOnly: true
-          minLength: 1
-        password:
-          type: string
-          writeOnly: true
-          minLength: 1
-      required:
-      - password
-      - username
     TokenRefresh:
       type: object
       properties:
@@ -8476,47 +6442,23 @@ components:
         * `ALERT` - Alert
     UserDetail:
       type: object
-      description: Full user representation for detail / update views.
+      description: Full user representation.
       properties:
         id:
           type: integer
           readOnly: true
-        username:
-          type: string
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
         email:
           type: string
           format: email
           maxLength: 254
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-        phone_no:
-          type: string
-          maxLength: 15
         role:
-          type: integer
-          nullable: true
-        role_name:
-          type: string
-          readOnly: true
+          $ref: '#/components/schemas/Role04bEnum'
         is_verified:
           type: boolean
         is_active:
           type: boolean
-          title: Active
-          description: Designates whether this user should be treated as active. Unselect
-            this instead of deleting accounts.
         is_staff:
           type: boolean
-          title: Staff status
-          description: Designates whether the user can log into this admin site.
         date_joined:
           type: string
           format: date-time
@@ -8534,90 +6476,45 @@ components:
       - date_joined
       - email
       - id
-      - role_name
+      - role
       - updated_at
-      - username
     UserDetailRequest:
       type: object
-      description: Full user representation for detail / update views.
+      description: Full user representation.
       properties:
-        username:
-          type: string
-          minLength: 1
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
         email:
           type: string
           format: email
           minLength: 1
           maxLength: 254
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-        phone_no:
-          type: string
-          maxLength: 15
         role:
-          type: integer
-          nullable: true
+          $ref: '#/components/schemas/Role04bEnum'
         is_verified:
           type: boolean
         is_active:
           type: boolean
-          title: Active
-          description: Designates whether this user should be treated as active. Unselect
-            this instead of deleting accounts.
         is_staff:
           type: boolean
-          title: Staff status
-          description: Designates whether the user can log into this admin site.
       required:
       - email
-      - username
+      - role
     UserList:
       type: object
-      description: Lightweight user representation for list views and nested FK fields.
+      description: Lightweight user representation.
       properties:
         id:
           type: integer
           readOnly: true
-        username:
-          type: string
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
         email:
           type: string
           format: email
           maxLength: 254
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-        phone_no:
-          type: string
-          maxLength: 15
         role:
-          type: integer
-          nullable: true
-        role_name:
-          type: string
-          readOnly: true
+          $ref: '#/components/schemas/Role04bEnum'
         is_verified:
           type: boolean
         is_active:
           type: boolean
-          title: Active
-          description: Designates whether this user should be treated as active. Unselect
-            this instead of deleting accounts.
         date_joined:
           type: string
           format: date-time
@@ -8626,102 +6523,37 @@ components:
       - date_joined
       - email
       - id
-      - role_name
-      - username
+      - role
     UserListRequest:
       type: object
-      description: Lightweight user representation for list views and nested FK fields.
+      description: Lightweight user representation.
       properties:
-        username:
-          type: string
-          minLength: 1
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
         email:
           type: string
           format: email
           minLength: 1
           maxLength: 254
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-        phone_no:
-          type: string
-          maxLength: 15
         role:
-          type: integer
-          nullable: true
+          $ref: '#/components/schemas/Role04bEnum'
         is_verified:
           type: boolean
         is_active:
           type: boolean
-          title: Active
-          description: Designates whether this user should be treated as active. Unselect
-            this instead of deleting accounts.
       required:
       - email
-      - username
-    UserRegisterRequest:
-      type: object
-      description: |-
-        Registration serializer.
-
-        Accepts password + password_confirm; creates user with hashed password.
-      properties:
-        username:
-          type: string
-          minLength: 1
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
-        email:
-          type: string
-          format: email
-          minLength: 1
-          maxLength: 254
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-        phone_no:
-          type: string
-          maxLength: 15
-        role:
-          type: integer
-          nullable: true
-        password:
-          type: string
-          writeOnly: true
-          minLength: 8
-          description: Minimum 8 characters.
-        password_confirm:
-          type: string
-          writeOnly: true
-          minLength: 1
-          description: Must match password.
-      required:
-      - email
-      - password
-      - password_confirm
-      - username
-    VerificationStatusEnum:
+      - role
+    WeatherZoneEnum:
       enum:
-      - PENDING
-      - APPROVED
-      - REJECTED
+      - Coastal
+      - Dry
+      - Heavy Rain
+      - Tribal
       type: string
       description: |-
-        * `PENDING` - Pending
-        * `APPROVED` - Approved
-        * `REJECTED` - Rejected
+        * `Coastal` - Coastal
+        * `Dry` - Dry
+        * `Heavy Rain` - Heavy Rain
+        * `Tribal` - Tribal
     WeeklyElectricalReport:
       type: object
       properties:
@@ -8815,7 +6647,7 @@ components:
           type: string
           readOnly: true
         severity:
-          $ref: '#/components/schemas/SeverityEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         severity_display:
           type: string
           readOnly: true
@@ -8843,7 +6675,7 @@ components:
         issue_type:
           $ref: '#/components/schemas/IssueTypeEnum'
         severity:
-          $ref: '#/components/schemas/SeverityEnum'
+          $ref: '#/components/schemas/StructuralRiskLevelEnum'
         description:
           type: string
           minLength: 1
@@ -9148,199 +6980,6 @@ components:
           type: string
       required:
       - weekly_report
-    WorkProgress:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        contract:
-          type: integer
-        progress_percentage:
-          type: integer
-          maximum: 32767
-          minimum: 0
-          description: Percentage of work completed (0–100).
-        status:
-          $ref: '#/components/schemas/WorkProgressStatusEnum'
-        status_display:
-          type: string
-          readOnly: true
-        update_note:
-          type: string
-        updated_by:
-          type: integer
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - contract
-      - created_at
-      - id
-      - status_display
-      - updated_at
-      - updated_by
-    WorkProgressRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        progress_percentage:
-          type: integer
-          maximum: 32767
-          minimum: 0
-          description: Percentage of work completed (0–100).
-        status:
-          $ref: '#/components/schemas/WorkProgressStatusEnum'
-        update_note:
-          type: string
-        updated_by:
-          type: integer
-      required:
-      - contract
-      - updated_by
-    WorkProgressStatusEnum:
-      enum:
-      - NOT_STARTED
-      - IN_PROGRESS
-      - ON_HOLD
-      - COMPLETED
-      type: string
-      description: |-
-        * `NOT_STARTED` - Not Started
-        * `IN_PROGRESS` - In Progress
-        * `ON_HOLD` - On Hold
-        * `COMPLETED` - Completed
-    WorkProof:
-      type: object
-      description: |-
-        Serializer for work proof file uploads.
-
-        Accepts multipart/form-data with file upload.
-        File constraints: max 10MB, allowed types: jpg, png, gif, mp4, pdf, doc, docx.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        contract:
-          type: integer
-        file:
-          type: string
-          format: uri
-          description: Upload image, video, or document as proof of work.
-        file_url:
-          type: string
-          nullable: true
-          description: Return the absolute URL for the uploaded file.
-          readOnly: true
-        file_type:
-          $ref: '#/components/schemas/FileTypeEnum'
-        file_type_display:
-          type: string
-          readOnly: true
-        description:
-          type: string
-        uploaded_by:
-          type: integer
-        uploaded_at:
-          type: string
-          format: date-time
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - contract
-      - created_at
-      - file
-      - file_type
-      - file_type_display
-      - file_url
-      - id
-      - uploaded_at
-      - uploaded_by
-    WorkProofRequest:
-      type: object
-      description: |-
-        Serializer for work proof file uploads.
-
-        Accepts multipart/form-data with file upload.
-        File constraints: max 10MB, allowed types: jpg, png, gif, mp4, pdf, doc, docx.
-      properties:
-        contract:
-          type: integer
-        file:
-          type: string
-          format: binary
-          description: Upload image, video, or document as proof of work.
-        file_type:
-          $ref: '#/components/schemas/FileTypeEnum'
-        description:
-          type: string
-        uploaded_by:
-          type: integer
-      required:
-      - contract
-      - file
-      - file_type
-      - uploaded_by
-    WorkVerification:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        contract:
-          type: integer
-        verified_by:
-          type: integer
-          description: DEO or official who verified the work.
-        verification_status:
-          $ref: '#/components/schemas/VerificationStatusEnum'
-        status_display:
-          type: string
-          readOnly: true
-        remarks:
-          type: string
-        verified_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - contract
-      - created_at
-      - id
-      - status_display
-      - verified_by
-    WorkVerificationRequest:
-      type: object
-      properties:
-        contract:
-          type: integer
-        verified_by:
-          type: integer
-          description: DEO or official who verified the work.
-        verification_status:
-          $ref: '#/components/schemas/VerificationStatusEnum'
-        remarks:
-          type: string
-        verified_at:
-          type: string
-          format: date-time
-          nullable: true
-      required:
-      - contract
-      - verified_by
   securitySchemes:
     cookieAuth:
       type: apiKey

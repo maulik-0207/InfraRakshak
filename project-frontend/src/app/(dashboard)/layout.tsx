@@ -8,13 +8,11 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <main className="w-full h-full flex flex-col p-4 md:p-8 overflow-y-auto">
-        <header className="flex w-full min-h-12 items-center lg:hidden">
-            <SidebarTrigger />
-        </header>
-        {children}
-      </main>
+      {/* 
+          Role-specific sidebars are now defined in sub-layouts 
+          (e.g., src/app/(dashboard)/deo/layout.tsx)
+      */}
+      {children}
     </SidebarProvider>
   )
 }

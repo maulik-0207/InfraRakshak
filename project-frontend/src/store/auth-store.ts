@@ -1,14 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type Role = 'PRINCIPAL' | 'ADMIN' | 'DEO' | 'CONTRACTOR' | 'STAFF' | null;
+type Role = 'SCHOOL' | 'SCHOOL_STAFF' | 'DEO' | 'ADMIN_STAFF' | 'CONTRACTOR' | null;
 
 interface UserDetails {
   id: number;
   email: string;
   username: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
 }
 
 interface AuthState {
@@ -16,7 +17,7 @@ interface AuthState {
   role: Role;
   user: UserDetails | null;
   isAuthenticated: boolean;
-  setAuth: (token: string, role: Role, user: UserDetails) => void;
+  setAuth: (token: string, role: string, user: UserDetails) => void;
   logout: () => void;
 }
 
@@ -27,7 +28,12 @@ export const useAuthStore = create<AuthState>()(
       role: null,
       user: null,
       isAuthenticated: false,
-      setAuth: (token, role, user) => set({ token, role, user, isAuthenticated: true }),
+      setAuth: (token, role, user) => set({ 
+        token, 
+        role: role.toUpperCase() as Role, 
+        user, 
+        isAuthenticated: true 
+      }),
       logout: () => set({ token: null, role: null, user: null, isAuthenticated: false }),
     }),
     {

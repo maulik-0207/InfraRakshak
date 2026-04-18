@@ -1,25 +1,77 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Define the routes that strictly exist under the unified Dashboard scope
-const protectedPrefixes = ["/dashboard", "/reports", "/contracts", "/admin", "/principal"];
+const protectedRoutes = {
+  deo: ["/deo"],
+  school: ["/school", "/principal", "/principle"],
+  staff: ["/staff"],
+  contractor: ["/contractor"],
+};
 
-export function proxy(request: NextRequest) {
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if the route requires protection
-  const isProtected = protectedPrefixes.some(prefix => pathname.startsWith(prefix));
+  // Bypass for APIs and static files is handled by matcher
+  const isProtectedPath = Object.values(protectedRoutes).some(prefixes => 
+    prefixes.some(prefix => pathname.startsWith(prefix))
+  );
 
-  if (isProtected) {
-    // Rely exclusively on the proxy dropping the secure 'access_token' cookie
-    // If it's missing, the session is fully dead on the server side.
-    const token = request.cookies.get("access_token");
+  if (!isProtectedPath) {
+    return NextResponse.next();
+  }
 
-    if (!token) {
-      // User is completely unauthenticated or proxy token expired. Evict to login.
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
+  const token = request.cookies.get("access_token")?.value;
+  const roleCookie = request.cookies.get("user_role")?.value;
+
+  console.log(`>>> [PROXY] Request: ${pathname} | Token: ${token ? "PRESENT" : "MISSING"} | Role: ${roleCookie || "NONE"}`);
+
+  if (!isProtectedPath) {
+    return NextResponse.next();
+  }
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const role = roleCookie?.toUpperCase();
+
+  // Role Based Routing Logic
+  if (pathname.startsWith("/deo")) {
+    if (role !== "DEO" && role !== "ADMIN_STAFF") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
+
+  if (pathname.startsWith("/school") || pathname.startsWith("/principal") || pathname.startsWith("/principle")) {
+    if (role !== "SCHOOL") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
+
+  if (pathname.startsWith("/staff")) {
+    if (role !== "SCHOOL_STAFF" && role !== "STAFF") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
+
+  if (pathname.startsWith("/contractor")) {
+    if (role !== "CONTRACTOR") {
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
 
@@ -27,9 +79,14 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Ensure the middleware runs against all potential dashboard routes 
-  // bypassing static files and the API endpoints directly.
   matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };
