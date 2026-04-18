@@ -36,7 +36,6 @@ export function AppSidebar() {
             <SidebarGroupLabel className="text-lg font-bold text-foreground">
               InfraRakshak
             </SidebarGroupLabel>
-            <ThemeToggle />
           </div>
           <SidebarGroupContent>
             <SidebarMenu>
