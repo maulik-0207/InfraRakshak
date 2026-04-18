@@ -8,7 +8,7 @@ export const API = {
 
   schools: {
     list: "/api/v1/schools/",
-    export: "/api/v1/schools/export/",
+    export: "/api/v1/schools/schools/export/",
     registrationRequests: "/api/v1/schools/registration-requests/",
   },
 

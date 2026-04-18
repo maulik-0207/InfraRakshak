@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   console.log(">>> [POST] /api/auth/login called");
   const { email, password } = await req.json();
-  const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000/api';
+  const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://192.168.1.29:8000/api';
   const backendUrl = `${BACKEND_API_URL}/v1/auth/token/`;
   console.log(`>>> Proxying login request to: ${backendUrl}`);
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     // Graceful parse in case the server returned a plain 401 string or HTML block
     const errorText = await response.text();
     let errorObj = { detail: "Invalid credentials" };
-    try { errorObj = JSON.parse(errorText); } catch {}
+    try { errorObj = JSON.parse(errorText); } catch { }
     return NextResponse.json({ error: errorObj }, { status: response.status });
   }
 
@@ -64,11 +64,11 @@ export async function POST(req: NextRequest) {
 
   // Set HttpOnly cookies with explicit sameSite for local compatibility
   const cookieOptions = { httpOnly: true, path: '/', maxAge: 15 * 60, sameSite: 'lax' as const };
-  
+
   res.cookies.set('access_token', access, cookieOptions);
   res.cookies.set('refresh_token', refresh, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 });
   res.cookies.set('user_role', data.role, cookieOptions);
-  
+
   console.log(`>>> [AUTH] Cookies issued for role: ${data.role}`);
   return res;
 }
