@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { background: #f4b400; color: white; padding: 10px; border-radius: 8px 8px 0 0; text-align: center; }
+        .content { padding: 20px; }
+        .footer { font-size: 12px; color: #777; margin-top: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>InfraRakshak Reminder</h1>
+        </div>
+        <div class="content">
+            <p>Hello <strong>{{ username }}</strong>,</p>
+            <p>This is a friendly reminder that the weekly infrastructure report for <strong>{{ school_name }}</strong> is still in DRAFT status.</p>
+            <p>Please ensure that the report is completed and submitted by the end of the week (<strong>{{ deadline }}</strong>).</p>
+            <p>Regular child safety and infrastructure monitoring are critical for maintaining school standards.</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; 2026 InfraRakshak Team</p>
+        </div>
+    </div>
+</body>
+</html>

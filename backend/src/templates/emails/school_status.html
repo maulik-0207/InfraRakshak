@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { background: #1a73e8; color: white; padding: 10px; border-radius: 8px 8px 0 0; text-align: center; }
+        .content { padding: 20px; }
+        .success { color: #2e7d32; font-weight: bold; }
+        .danger { color: #d32f2f; font-weight: bold; }
+        .footer { font-size: 12px; color: #777; margin-top: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>InfraRakshak Notification</h1>
+        </div>
+        <div class="content">
+            <p>Hello <strong>{{ username }}</strong>,</p>
+            <p>The registration request for <strong>{{ school_name }}</strong> has been processed.</p>
+            
+            {% if status == 'APPROVED' %}
+                <p class="success">Status: APPROVED</p>
+                <p>Congratulations! Your school is now active on the InfraRakshak platform. You can now begin submitting weekly infrastructure reports.</p>
+            {% else %}
+                <p class="danger">Status: REJECTED</p>
+                <p>Unfortunately, your registration request was rejected for the following reason:</p>
+                <p><em>{{ reason }}</em></p>
+                <p>Please contact the District Education Office (DEO) for further clarification.</p>
+            {% endif %}
+        </div>
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; 2026 InfraRakshak Team</p>
+        </div>
+    </div>
+</body>
+</html>

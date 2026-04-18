@@ -1,0 +1,418 @@
+-> User
+---------
+id (PK)
+username (unique)
+email (unique)
+phone_no
+password_hash
+role (ENUM: DEO, ADMIN_STAFF, PRINCIPAL, SCHOOL_STAFF, CONTRACTOR)
+name
+is_verified (boolean)
+is_active (boolean)
+created_at
+updated_at
+
+-> Principal
+---------
+id (PK)
+user_id (FK → User.id)
+school_id (FK → School.id)
+joining_date
+qualification
+experience_years
+
+SchoolStaff
+-----------
+id (PK)
+user_id (FK → User.id)
+school_id (FK → School.id)
+designation (e.g., Clerk, Supervisor, Technician)
+
+Contractor
+----------
+id (PK)
+user_id (FK → User.id)
+company_name
+license_number
+specialization (ENUM: Plumbing, Electrical, Structural, Multi)
+experience_years
+rating (optional)
+is_available (boolean)
+
+DEO
+---
+id (PK)
+user_id (FK → User.id)
+district
+office_address
+
+AdminStaff
+----------
+id (PK)
+user_id (FK → User.id)
+office_name
+designation
+district
+
+School
+------
+id (PK)
+udise_code (unique)         -- very important (gov identifier)
+name
+address
+district
+block
+cluster
+pincode
+latitude
+longitude
+school_type (Primary, Secondary, Higher Secondary)
+created_at
+updated_at
+
+SchoolProfile
+-------------
+id (PK)
+school_id (FK → School.id)
+
+total_students
+total_boys
+total_girls
+
+teachers_count
+non_teaching_staff_count
+
+classrooms_count
+functional_classrooms
+
+area_type (ENUM: Rural, Urban, Semi-Urban)
+
+electricity_available (boolean)
+internet_available (boolean)
+drinking_water_available (boolean)
+
+academic_year
+
+created_at
+updated_at
+
+
+SchoolInfrastructure
+--------------------
+id (PK)
+school_id (FK → School.id)
+
+survey_date
+
+-- Toilets
+boys_toilets_total
+boys_toilets_functional
+girls_toilets_total
+girls_toilets_functional
+
+-- Water
+water_source_available (boolean)
+water_quality_ok (boolean)
+
+-- Electricity
+electricity_connection (boolean)
+power_backup (boolean)
+
+-- Plumbing Issues
+leakage_present (boolean)
+drainage_issue (boolean)
+
+-- Electrical Issues
+wiring_condition (ENUM: Good, Average, Poor)
+fan_condition (ENUM: Good, Average, Poor)
+lighting_condition (ENUM: Good, Average, Poor)
+
+-- Structural Issues
+building_condition (ENUM: Good, Minor Damage, Major Damage)
+roof_leakage (boolean)
+wall_cracks (boolean)
+
+-- Cleanliness
+toilet_cleanliness (rating 1-5)
+campus_cleanliness (rating 1-5)
+
+-- Derived / helper
+inspection_score (optional numeric)
+
+submitted_by (FK → User.id)
+created_at
+
+WeeklyReport
+------------
+id (PK)
+school_id (FK → School.id)
+
+week_start_date
+week_end_date
+
+status (ENUM: Draft, Submitted, Reviewed)
+
+submitted_by (FK → User.id)
+submitted_at
+
+reviewed_by (FK → User.id)      -- admin/DEO
+reviewed_at
+
+remarks (text)
+
+created_at
+updated_at
+
+WeeklyPlumbingReport
+--------------------
+id (PK)
+weekly_report_id (FK → WeeklyReport.id)
+
+total_taps
+functional_taps
+leakage_points_count
+drainage_blockage (boolean)
+
+water_availability (boolean)
+water_shortage_days (int)
+
+toilet_water_issue (boolean)
+
+remarks (text)
+
+WeeklyElectricalReport
+----------------------
+id (PK)
+weekly_report_id (FK → WeeklyReport.id)
+
+total_fans
+functional_fans
+
+total_lights
+functional_lights
+
+power_outage_hours
+backup_available (boolean)
+
+wiring_issues (boolean)
+switchboard_issues (boolean)
+
+remarks (text)
+
+WeeklyStructuralReport
+----------------------
+id (PK)
+weekly_report_id (FK → WeeklyReport.id)
+
+classrooms_total
+classrooms_usable
+
+roof_leakage (boolean)
+wall_cracks (boolean)
+plaster_damage (boolean)
+
+building_safety (ENUM: Safe, Minor Risk, Unsafe)
+
+repair_required (boolean)
+
+remarks (text)
+
+WeeklyIssues
+------------
+id (PK)
+weekly_report_id (FK)
+
+issue_type (ENUM: Plumbing, Electrical, Structural)
+severity (Low, Medium, High)
+
+description (text)
+
+is_resolved (boolean)
+
+
+PredictionReport
+----------------
+id (PK)
+
+school_id (FK → School.id)
+
+weekly_report_id (FK → WeeklyReport.id)
+
+overall_risk_level (ENUM: Low, Medium, High)
+overall_score (float)
+
+plumbing_risk_level (Low, Medium, High)
+plumbing_score (float)
+
+electrical_risk_level (Low, Medium, High)
+electrical_score (float)
+
+structural_risk_level (Low, Medium, High)
+structural_score (float)
+
+priority_rank (int)          -- used for sorting (DEO dashboard)
+
+model_version
+generated_at
+
+
+PredictionIssues
+----------------
+id (PK)
+
+prediction_report_id (FK → PredictionReport.id)
+
+category (ENUM: Plumbing, Electrical, Structural)
+issue_name (e.g., "Toilet Failure", "Wiring Damage")
+
+severity (Low, Medium, High)
+score (float)
+
+recommended_action (text)
+
+
+DistrictReport
+--------------
+id (PK)
+
+district
+
+week_start_date
+week_end_date
+
+total_schools
+
+high_risk_schools
+medium_risk_schools
+low_risk_schools
+
+avg_score
+
+generated_at
+
+
+Contract
+--------
+id (PK)
+
+school_id (FK → School.id)
+prediction_report_id (FK → PredictionReport.id)
+
+title
+description
+
+category (ENUM: Plumbing, Electrical, Structural)
+
+estimated_cost
+priority_level (Low, Medium, High)
+
+status (ENUM: Open, In_Bidding, Awarded, In_Progress, Completed, Cancelled)
+
+bid_start_date
+bid_end_date
+
+created_by (FK → User.id)   -- admin/DEO
+created_at
+updated_at
+
+ContractBid
+-----------
+id (PK)
+
+contract_id (FK → Contract.id)
+contractor_id (FK → Contractor.id)
+
+bid_amount
+estimated_days
+
+proposal_text
+
+status (ENUM: Pending, Accepted, Rejected, Withdrawn)
+
+submitted_at
+
+ContractAssignment
+------------------
+id (PK)
+
+contract_id (FK → Contract.id)
+contractor_id (FK → Contractor.id)
+bid_id (FK → ContractBid.id)
+
+final_amount
+final_deadline
+
+assigned_at
+
+WorkProgress
+------------
+id (PK)
+
+contract_id (FK → Contract.id)
+
+progress_percentage (0–100)
+
+status (ENUM: Not_Started, In_Progress, On_Hold, Completed)
+
+update_note (text)
+
+updated_by (FK → User.id)
+updated_at
+
+WorkProof
+---------
+id (PK)
+
+contract_id (FK → Contract.id)
+
+file_url
+file_type (image, video, document)
+
+description
+
+uploaded_by (FK → User.id)
+uploaded_at
+
+
+WorkVerification
+----------------
+id (PK)
+
+contract_id (FK → Contract.id)
+
+verified_by (FK → User.id)   -- DEO / अधिकारी
+verification_status (ENUM: Pending, Approved, Rejected)
+
+remarks
+
+verified_at
+
+
+ContractPayment
+---------------
+id (PK)
+
+contract_id (FK → Contract.id)
+
+amount
+
+payment_status (ENUM: Pending, Partial, Paid)
+
+transaction_reference
+
+paid_at
+
+Notification
+------------
+id (PK)
+
+user_id (FK → User.id)
+
+title
+message
+
+type (Report, Contract, Alert)
+
+is_read (boolean)
+
+created_at
