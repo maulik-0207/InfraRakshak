@@ -175,6 +175,132 @@ The notebooks must be executed in the following sequence to ensure proper data p
 
 ---
 
+## Model Features and Predicted Values
+
+### Plumbing-Model
+
+**Algorithm:** RandomForestClassifier with LogisticRegression baseline
+
+**Input Features:**
+
+| Feature Category      | Features                                                      |
+| --------------------- | ------------------------------------------------------------- |
+| Water Systems         | water_leak, toilet_functional_ratio, roof_leak_flag           |
+| Condition Metrics     | condition_score, condition_trend, deterioration_rate          |
+| Maintenance History   | weeks_since_last_repair, days_since_repair, repair_done       |
+| Building Information  | students_per_toilet, num_students, building_age, girls_school |
+| Environmental Factors | flood*prone_area, weather_zone*\* (one-hot encoded)           |
+| Structural Indicators | crack_width_mm, urgency_score                                 |
+
+**Predicted Value:**
+
+- **Output Type:** Binary Classification
+- **Values:** 0 or 1
+- **Interpretation:**
+  - 0 = No plumbing failure expected within 30 days
+  - 1 = Plumbing failure likely within 30 days
+- **Probability Output:** Confidence score between 0.0 and 1.0
+
+---
+
+### Electrical-Model
+
+**Algorithm:** RandomForestClassifier
+
+**Input Features:**
+
+| Feature Category      | Features                                                         |
+| --------------------- | ---------------------------------------------------------------- |
+| Electrical Systems    | wiring_exposed, power_outage_hours_weekly, issue_flag            |
+| Condition Metrics     | condition_score, condition_trend, deterioration_rate             |
+| Maintenance History   | weeks_since_last_repair, days_since_repair, repair_done          |
+| Building Information  | students_per_classroom, num_students, building_age, girls_school |
+| Environmental Factors | flood*prone_area, weather_zone*\* (one-hot encoded)              |
+| Structural Indicators | crack_width_mm, water_leak, roof_leak_flag, urgency_score        |
+
+**Predicted Value:**
+
+- **Output Type:** Binary Classification
+- **Values:** 0 or 1
+- **Interpretation:**
+  - 0 = No electrical failure expected within 30 days
+  - 1 = Electrical failure likely within 30 days
+- **Probability Output:** Confidence score between 0.0 and 1.0
+
+---
+
+### Structural-Model
+
+**Algorithm:** RandomForestClassifier
+
+**Input Features:**
+
+| Feature Category      | Features                                                            |
+| --------------------- | ------------------------------------------------------------------- |
+| Structural Damage     | crack_width_mm, crack_growth_rate, roof_leak_flag                   |
+| Condition Metrics     | condition_score, condition_trend, deterioration_rate                |
+| Building Information  | building_age, flood_prone_area, girls_school, num_students          |
+| Maintenance History   | weeks_since_last_repair, days_since_repair, repair_done             |
+| Environmental Factors | material*type*_ (one-hot encoded), weather*zone*_ (one-hot encoded) |
+| Issue Indicators      | water_leak, wiring_exposed, issue_flag, urgency_score               |
+
+**Predicted Value:**
+
+- **Output Type:** Multi-class Classification
+- **Values:** Safe, Warning, or Danger
+- **Interpretation:**
+  - Safe = Building structure is stable with no immediate concerns
+  - Warning = Moderate structural issues requiring scheduled maintenance
+  - Danger = Critical structural problems requiring immediate intervention
+- **Probability Output:** Confidence scores for each class (sum to 1.0)
+
+---
+
+### Main-Model
+
+**Algorithm:** Weighted Aggregation Layer
+
+**Input Features:**
+
+| Source           | Features                                     |
+| ---------------- | -------------------------------------------- |
+| Plumbing Model   | Binary prediction (0/1) + confidence score   |
+| Electrical Model | Binary prediction (0/1) + confidence score   |
+| Structural Model | Multi-class prediction (Safe/Warning/Danger) |
+| Domain Weights   | Risk level, urgency factor, impact weight    |
+
+**Feature Engineering in Main-Model:**
+
+- Plumbing Risk: Converts binary output to risk level (0-3 scale)
+- Electrical Risk: Converts binary output to risk level (0-3 scale)
+- Structural Risk: Maps severity classes to risk levels (Safe=1, Warning=2, Danger=3)
+- Urgency Factor: Calculated as (60 - days_to_failure)
+- Impact Weight: Location-based multiplier (Girls toilet=3, Classroom=2, Storage=1)
+
+**Predicted Value:**
+
+- **Output Type:** Priority Score (Numerical)
+- **Range:** 0.0 to 100.0
+- **Calculation:** Sum of (risk_level × urgency × impact_weight), normalized to 0-100
+- **Interpretation:**
+  - 0-20 = Low priority (routine maintenance)
+  - 21-50 = Medium priority (schedule within 2-4 weeks)
+  - 51-75 = High priority (schedule within 1-2 weeks)
+  - 76-100 = Critical priority (immediate action required)
+
+---
+
+## Feature Summary Table
+
+| Model      | Feature Count              | Target Variable         | Prediction Type            | Output Range            |
+| ---------- | -------------------------- | ----------------------- | -------------------------- | ----------------------- |
+| Plumbing   | 18+ (varies with encoding) | failure_within_30_days  | Binary Classification      | 0 or 1                  |
+| Electrical | 18+ (varies with encoding) | failure_within_30_days  | Binary Classification      | 0 or 1                  |
+| Structural | 18+ (varies with encoding) | structural_severity     | Multi-class Classification | Safe / Warning / Danger |
+| Main       | Combined from all models   | infrastructure_priority | Numerical Score            | 0.0 to 100.0            |
+
+---
+
 ## Technical Requirements
 
 - Python 3.7+
