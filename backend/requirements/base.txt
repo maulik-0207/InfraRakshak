@@ -1,0 +1,14 @@
+# Common requirements that project needs in every environment 
+
+Django==6.0.4
+django-environ
+argon2-cffi
+bcrypt
+psycopg2
+redis
+django-redis
+celery
+django-celery-results
+djangorestframework
+django-cors-headers
+django-jazzmin
