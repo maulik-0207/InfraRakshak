@@ -45,6 +45,26 @@ export async function POST(req: NextRequest) {
   const access = data.access;
   const refresh = data.refresh;
 
+  let deoId = data.deo_id ?? null;
+
+  // Since the backend token doesn't include deo_id natively, we fetch it here 
+  // so the frontend store gets it transparently without backend code changes.
+  if (!deoId && data.role === "DEO") {
+    try {
+      const deoRes = await fetch(`${BACKEND_API_URL}/v1/accounts/profiles/deos/`, {
+        headers: { "Authorization": `Bearer ${access}` },
+      });
+      if (deoRes.ok) {
+        const deoData = await deoRes.json();
+        const profiles: any[] = deoData.results ?? deoData;
+        const match = profiles.find((p) => p.email === data.email);
+        if (match) deoId = match.id;
+      }
+    } catch (e) {
+      console.error("Failed to fetch DEO Profile ID during login", e);
+    }
+  }
+
   // Build a user object from the flat JWT response.
   // The backend serializer returns `email` and `role` at the top level, not nested.
   const userPayload = {
@@ -52,6 +72,7 @@ export async function POST(req: NextRequest) {
     email: data.email ?? "",
     username: data.email ?? "",     // use email as username fallback
     role: data.role ?? "",
+    deo_id: deoId,
   };
 
   const res = NextResponse.json({
@@ -68,6 +89,10 @@ export async function POST(req: NextRequest) {
   res.cookies.set('access_token', access, cookieOptions);
   res.cookies.set('refresh_token', refresh, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 });
   res.cookies.set('user_role', data.role, cookieOptions);
+  
+  if (deoId) {
+    res.cookies.set('deo_id', String(deoId), cookieOptions);
+  }
 
   console.log(`>>> [AUTH] Cookies issued for role: ${data.role}`);
   return res;
