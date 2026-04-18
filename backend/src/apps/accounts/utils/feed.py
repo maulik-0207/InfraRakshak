@@ -57,7 +57,7 @@ def seed_schools(count=50):
         SchoolAccountProfile.objects.get_or_create(
             user=user,
             defaults={
-                "school_id": f"SCH-{1000 + i}",
+                "udise_code": f"24{random.randint(100000000, 999999999)}",
                 "school_name": f"{fake.company()} School",
                 "phone_no": fake.phone_number()[:15],
                 "district": random.choice(districts),

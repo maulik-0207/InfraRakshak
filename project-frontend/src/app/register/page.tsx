@@ -116,7 +116,7 @@ export default function RegisterPage() {
             src="/logo.png"
             alt="InfraRakshak Logo"
             width={160}
-            height={60}
+            height={0}
             style={{ height: "auto" }}
             className="object-contain transition-transform group-hover:scale-105"
             priority

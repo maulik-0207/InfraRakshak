@@ -46,8 +46,8 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(SchoolAccountProfile)
 class SchoolAccountProfileAdmin(admin.ModelAdmin):
-    list_display = ("school_name", "school_id", "user", "district", "school_type")
-    search_fields = ("school_name", "school_id", "user__email", "district")
+    list_display = ("school_name", "udise_code", "user", "district", "school_type")
+    search_fields = ("school_name", "udise_code", "user__email", "district")
     list_filter = ("school_type", "district")
     raw_id_fields = ("user",)
 

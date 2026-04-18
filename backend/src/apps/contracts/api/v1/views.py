@@ -35,6 +35,7 @@ from apps.contracts.models import (
     ContractPayment,
     WorkProgress,
     WorkVerification,
+    WorkProof,
 )
 from apps.contracts.services import ContractLifecycleService
 from common.export import export_queryset_to_excel
