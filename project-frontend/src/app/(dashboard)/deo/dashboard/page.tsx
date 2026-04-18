@@ -339,6 +339,29 @@ function AdminStaffPanel() {
 
 function OverviewPanel() {
   const { data: dashData, loading: dashLoading } = useApi<DashboardStats>(API.dashboard);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch(API.schools.export);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `schools-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const { data: districtRaw, loading: distLoading } = useApi<PaginatedResponse<DistrictReport>>(
     `${API.predictions.district}?ordering=-week_start_date&page_size=1`
   );
@@ -533,12 +556,18 @@ function OverviewPanel() {
 
       {/* Export Button */}
       {!dashLoading && stats && (
-        <a
-          href={API.schools.export}
-          className="inline-flex items-center gap-2 bg-[#eeefe9] border border-[#b6b7af] text-[#23251d] px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#23251d] hover:text-white transition-all"
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="inline-flex items-center gap-2 bg-[#eeefe9] border border-[#b6b7af] text-[#23251d] px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#23251d] hover:text-white transition-all disabled:opacity-60 disabled:pointer-events-none"
         >
-          <Download className="w-4 h-4" /> Export Schools CSV
-        </a>
+          {exporting ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          {exporting ? "Exporting…" : "Export Schools CSV"}
+        </button>
       )}
     </div>
   );

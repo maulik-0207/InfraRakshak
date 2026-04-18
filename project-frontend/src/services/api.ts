@@ -7,11 +7,11 @@ export const API = {
   dashboard: "/api/v1/accounts/dashboard/",
 
   schools: {
-    list: "/api/v1/schools/",
+    list: "/api/v1/schools/schools/",
     profiles: "/api/v1/schools/profiles/",
-    export: "/api/v1/schools/export/",
+    export: "/api/v1/schools/schools/export/",
     registrationRequests: "/api/v1/schools/registration-requests/",
-    me: "/api/v1/schools/me/",
+    me: "/api/v1/schools/schools/me/",
   },
 
   reports: {
