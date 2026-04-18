@@ -10,7 +10,13 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from rest_framework import parsers, viewsets
+from django.conf import settings
+from rest_framework import parsers, viewsets, permissions
+from rest_framework.decorators import action
+from common.permissions import (
+    IsSchool, IsDEO, IsAdminStaff, IsContractor,
+    IsDEOOrAdminStaff, IsOwnerOrAdmin
+)
 
 from apps.contracts.api.v1.serializers import (
     ContractAssignmentSerializer,
@@ -31,6 +37,7 @@ from apps.contracts.models import (
     WorkVerification,
 )
 from apps.contracts.services import ContractLifecycleService
+from common.export import export_queryset_to_excel
 
 User = settings.AUTH_USER_MODEL
 
@@ -109,6 +116,14 @@ class ContractViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "school__name"]
     filterset_fields = ["school", "status", "category", "priority_level"]
     ordering_fields = ["created_at", "estimated_cost", "priority_level"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
+
+    @extend_schema(summary="Export contracts to Excel", tags=["Contracts"])
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        fields = ["title", "school__name", "category", "estimated_cost", "status", "priority_level"]
+        return export_queryset_to_excel(queryset, fields, filename_prefix="contracts_registry")
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -156,6 +171,7 @@ class ContractBidViewSet(viewsets.ModelViewSet):
     queryset = ContractBid.objects.select_related("contract", "contractor").all()
     serializer_class = ContractBidSerializer
     ordering_fields = ["bid_amount", "submitted_at"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
     def perform_create(self, serializer):
         ContractLifecycleService.submit_bid(
@@ -207,6 +223,7 @@ class ContractAssignmentViewSet(viewsets.ModelViewSet):
     queryset = ContractAssignment.objects.select_related("contract", "contractor", "bid").all()
     serializer_class = ContractAssignmentSerializer
     filterset_fields = ["contract", "contractor"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
 
 # ===========================================================================
@@ -245,6 +262,7 @@ class WorkProgressViewSet(viewsets.ModelViewSet):
     serializer_class = WorkProgressSerializer
     filterset_fields = ["contract", "status"]
     ordering_fields = ["progress_percentage", "updated_at"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
 
 # ===========================================================================
@@ -295,6 +313,7 @@ class WorkProofViewSet(viewsets.ModelViewSet):
     serializer_class = WorkProofSerializer
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
     ordering_fields = ["uploaded_at"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
     def perform_create(self, serializer):
         ContractLifecycleService.upload_work_proof(
@@ -328,6 +347,7 @@ class WorkVerificationViewSet(viewsets.ModelViewSet):
     queryset = WorkVerification.objects.select_related("contract", "verified_by").all()
     serializer_class = WorkVerificationSerializer
     filterset_fields = ["contract", "verification_status"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
 
 # ===========================================================================
@@ -366,3 +386,4 @@ class ContractPaymentViewSet(viewsets.ModelViewSet):
     serializer_class = ContractPaymentSerializer
     filterset_fields = ["contract", "payment_status"]
     ordering_fields = ["paid_at", "amount"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]

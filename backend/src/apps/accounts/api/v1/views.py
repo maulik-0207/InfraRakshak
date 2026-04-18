@@ -15,6 +15,12 @@ from drf_spectacular.utils import (
 )
 
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from common.permissions import (
+    IsSchool, IsDEO, IsContractor, IsAdminStaff, IsSchoolStaff,
+    IsDEOOrAdminStaff, IsSchoolOrStaff
+)
 
 from apps.accounts.models import (
     User, SchoolAccountProfile, DEOProfile, ContractorProfile, 
@@ -24,8 +30,9 @@ from apps.accounts.api.v1.serializers import (
     UserListSerializer, UserDetailSerializer,
     SchoolAccountProfileSerializer, DEOProfileSerializer, ContractorProfileSerializer,
     AdminStaffProfileSerializer, StaffProfileSerializer,
-    SchoolRegistrationSerializer, ContractorRegistrationSerializer,
+    SchoolSelfRegistrationSerializer, ContractorRegistrationSerializer,
     BulkOnboardingSerializer,
+    LogoutRequestSerializer, DashboardSerializer,
     CustomTokenObtainPairSerializer
 )
 from apps.accounts.services import AuthService, OnboardingService
@@ -57,6 +64,70 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
+@extend_schema(
+    summary="User Logout",
+    description="Blacklists the provided refresh token to securely end the session.",
+    tags=["Auth"],
+    request=LogoutRequestSerializer,
+    responses={205: OpenApiResponse(description="Token blacklisted successfully.")}
+)
+class LogoutView(APIView):
+    serializer_class = LogoutRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="Get Dashboard Statistics",
+        description="Returns role-specific statistics and overview data for the authenticated user.",
+        tags=["Dashboard"],
+        responses={200: DashboardSerializer}
+    )
+)
+class DashboardViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DashboardSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        user = request.user
+        role = user.role
+        data = {"role": role, "email": user.email, "stats": {}}
+
+        if role == User.Role.DEO:
+            from apps.schools.models import School
+            from apps.contracts.models import Contract
+            data["stats"] = {
+                "total_schools": School.objects.filter(district=user.deo_profile.district).count(),
+                "active_contracts": Contract.objects.filter(status="IN_PROGRESS").count(),
+                "pending_bids": 0, # Placeholder
+            }
+        elif role == User.Role.SCHOOL:
+            from apps.reports.models import WeeklyReport
+            data["stats"] = {
+                "total_staff": user.school_profile.staff_members.count(),
+                "pending_reports": WeeklyReport.objects.filter(school__school_profile=user.school_profile, status="DRAFT").count(),
+                "submitted_reports": WeeklyReport.objects.filter(school__school_profile=user.school_profile, status="SUBMITTED").count(),
+            }
+        elif role == User.Role.CONTRACTOR:
+            from apps.contracts.models import Contract
+            data["stats"] = {
+                "assigned_contracts": Contract.objects.filter(assigned_contractor=user).count(),
+                "active_bids": 0, # Placeholder
+            }
+        
+        return Response(data)
+
+
 @extend_schema_view(
     list=extend_schema(
         summary="List all users", 
@@ -80,7 +151,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     search_fields = ["email"]
     filterset_fields = ["role", "is_active", "is_verified"]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "update", "partial_update"):
@@ -116,7 +187,7 @@ class SchoolRegistrationView(APIView):
     @extend_schema(
         summary="School Self-Registration",
         description="Public endpoint for schools to register their own account. Password must be at least 8 characters.",
-        request=SchoolRegistrationSerializer,
+        request=SchoolSelfRegistrationSerializer,
         responses={201: UserListSerializer},
         tags=["Auth"],
         examples=[
@@ -136,7 +207,7 @@ class SchoolRegistrationView(APIView):
         ]
     )
     def post(self, request):
-        serializer = SchoolRegistrationSerializer(data=request.data)
+        serializer = SchoolSelfRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = AuthService.register_school(serializer.validated_data)
         return Response(UserListSerializer(user).data, status=status.HTTP_201_CREATED)
@@ -229,7 +300,7 @@ PROFILE_KWARGS = {
 class SchoolAccountProfileViewSet(viewsets.ModelViewSet):
     queryset = SchoolAccountProfile.objects.all()
     serializer_class = SchoolAccountProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchool]
 
 @extend_schema_view(
     list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List DEO profiles"}),
@@ -241,7 +312,7 @@ class SchoolAccountProfileViewSet(viewsets.ModelViewSet):
 class DEOProfileViewSet(viewsets.ModelViewSet):
     queryset = DEOProfile.objects.all()
     serializer_class = DEOProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
 @extend_schema_view(
     list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List contractor profiles"}),
@@ -253,7 +324,7 @@ class DEOProfileViewSet(viewsets.ModelViewSet):
 class ContractorProfileViewSet(viewsets.ModelViewSet):
     queryset = ContractorProfile.objects.all()
     serializer_class = ContractorProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
 @extend_schema_view(
     list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List admin staff profiles"}),
@@ -265,7 +336,7 @@ class ContractorProfileViewSet(viewsets.ModelViewSet):
 class AdminStaffProfileViewSet(viewsets.ModelViewSet):
     queryset = AdminStaffProfile.objects.all()
     serializer_class = AdminStaffProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
 @extend_schema_view(
     list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List school staff profiles"}),
@@ -277,4 +348,4 @@ class AdminStaffProfileViewSet(viewsets.ModelViewSet):
 class StaffProfileViewSet(viewsets.ModelViewSet):
     queryset = StaffProfile.objects.all()
     serializer_class = StaffProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]

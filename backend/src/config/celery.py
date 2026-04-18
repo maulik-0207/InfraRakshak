@@ -26,12 +26,4 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
-
-# app.conf.beat_schedule = {
-#     #Scheduler Name
-#     'seller-payment': {
-#         'task': 'seller_payment', # Task Name (Name Specified in Decorator)  
-#         'schedule': 420.0, # Run in every 7 minutes
-#     },
-# }  
  

@@ -28,17 +28,17 @@ def send_report_reminders_task():
         status=WeeklyReport.Status.DRAFT,
         week_start_date__lte=today,
         week_end_date__gte=today
-    ).select_related('school', 'school__principal')
+    ).select_related('school', 'assigned_to')
 
     for report in pending_reports:
-        # We assume the principal or designated staff needs the reminder
-        user = report.school.principal if hasattr(report.school, 'principal') else None
+        # Send reminder to the assigned staff member or skip if not assigned
+        user = report.assigned_to
         if user and user.email:
             EmailService.send_templated_email(
                 subject=f"Reminder: Weekly Infrastructure Report for {report.school.name}",
                 template_name="emails/report_reminder.html",
                 context={
-                    "username": user.username,
+                    "email": user.email,
                     "school_name": report.school.name,
                     "deadline": report.week_end_date
                 },

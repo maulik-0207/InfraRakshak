@@ -2,8 +2,13 @@
 Schools API v1 views.
 """
 
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import viewsets
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from common.permissions import (
+    IsSchool, IsDEO, IsAdminStaff, IsSchoolStaff,
+    IsDEOOrAdminStaff, IsSchoolOrStaff
+)
 
 from apps.schools.api.v1.serializers import (
     SchoolInfrastructureSerializer,
@@ -13,6 +18,7 @@ from apps.schools.api.v1.serializers import (
 )
 from apps.schools.models import School, SchoolInfrastructure, SchoolProfile, SchoolRegistrationRequest
 from apps.schools.services import SchoolWorkflowService
+from common.export import export_queryset_to_excel
 
 
 @extend_schema_view(
@@ -64,12 +70,20 @@ class SchoolViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "udise_code", "district"]
     filterset_fields = ["district", "block", "school_type"]
     ordering_fields = ["name", "district", "created_at"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
     def perform_create(self, serializer):
         """Overrides create to use the workflow service."""
         SchoolWorkflowService.submit_registration(
             user=self.request.user,
             school_data=serializer.validated_data
         )
+
+    @extend_schema(summary="Export schools to Excel", tags=["Schools"])
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        fields = ["udise_code", "name", "district", "block", "school_type", "is_active"]
+        return export_queryset_to_excel(queryset, fields, filename_prefix="schools_registry")
 
 
 @extend_schema_view(
@@ -96,6 +110,7 @@ class SchoolProfileViewSet(viewsets.ModelViewSet):
     serializer_class = SchoolProfileSerializer
     search_fields = ["school__name", "school__udise_code"]
     filterset_fields = ["area_type", "academic_year"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
 
 @extend_schema_view(
@@ -128,6 +143,7 @@ class SchoolInfrastructureViewSet(viewsets.ModelViewSet):
     search_fields = ["school__name", "school__udise_code"]
     filterset_fields = ["school", "building_condition", "wiring_condition", "survey_date"]
     ordering_fields = ["survey_date", "inspection_score"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
 # ===========================================================================
 # Registration Request ViewSet
@@ -157,6 +173,7 @@ class SchoolRegistrationRequestViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = SchoolRegistrationRequest.objects.select_related("school", "submitted_by").all()
     serializer_class = SchoolRegistrationRequestSerializer
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
     @extend_schema(
         summary="Approve or Reject registration",
