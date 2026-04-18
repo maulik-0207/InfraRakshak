@@ -120,7 +120,7 @@ class StaffProfileSerializer(serializers.ModelSerializer):
 # Onboarding Serializers
 # ===========================================================================
 
-class SchoolRegistrationSerializer(serializers.Serializer):
+class SchoolSelfRegistrationSerializer(serializers.Serializer):
     """Serializer for School self-registration."""
     
     email = serializers.EmailField()
@@ -136,6 +136,18 @@ class SchoolRegistrationSerializer(serializers.Serializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
+
+
+class LogoutRequestSerializer(serializers.Serializer):
+    """Serializer for blacklisting a refresh token."""
+    refresh = serializers.CharField(help_text="The refresh token to blacklist.")
+
+
+class DashboardSerializer(serializers.Serializer):
+    """Serializer for dashboard summary response."""
+    role = serializers.CharField()
+    email = serializers.EmailField()
+    stats = serializers.DictField(child=serializers.IntegerField())
 
 
 class ContractorRegistrationSerializer(serializers.Serializer):

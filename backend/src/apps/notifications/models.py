@@ -52,4 +52,4 @@ class Notification(TimeStampedModel):
 
     def __str__(self) -> str:
         status = "Read" if self.is_read else "Unread"
-        return f"[{status}] {self.title} → {self.user.username}"
+        return f"[{status}] {self.title} → {self.user.email}"

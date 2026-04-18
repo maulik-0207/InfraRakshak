@@ -2,8 +2,9 @@
 Notifications API v1 views.
 """
 
-from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
-from rest_framework import status, viewsets
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema, extend_schema_view
+from rest_framework import status, viewsets, permissions
+from common.permissions import IsOwnerOrAdmin
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -55,6 +56,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "message"]
     filterset_fields = ["user", "type", "is_read"]
     ordering_fields = ["created_at", "is_read"]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
+
+    def get_queryset(self):
+        """Restrict to the authenticated user's own notifications."""
+        return Notification.objects.filter(user=self.request.user).select_related("user")
 
     @extend_schema(
         summary="Mark all as read",

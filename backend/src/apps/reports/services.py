@@ -41,11 +41,17 @@ class ReportCycleService:
                 week_start_date=start_date,
                 week_end_date=end_date
             ).exists():
+                # Attempt to assign to the first available staff member
+                from apps.accounts.models import StaffProfile
+                assigned_staff = StaffProfile.objects.filter(school_account__school_profile__school=school).first()
+                assigned_user = assigned_staff.user if assigned_staff else None
+
                 report = WeeklyReport.objects.create(
                     school=school,
                     week_start_date=start_date,
                     week_end_date=end_date,
-                    status=WeeklyReport.Status.DRAFT
+                    status=WeeklyReport.Status.DRAFT,
+                    assigned_to=assigned_user
                 )
                 # Initialize sub-reports
                 WeeklyPlumbingReport.objects.create(weekly_report=report)
@@ -77,7 +83,7 @@ class ReportCycleService:
         report.submitted_at = timezone.now()
         report.save()
 
-        logger.info(f"Weekly report {report_id} submitted by {user.username}")
+        logger.info(f"Weekly report {report_id} submitted by {user.email}")
         
         # Trigger ML Prediction (Async)
         from apps.predictions.tasks import run_prediction_for_report

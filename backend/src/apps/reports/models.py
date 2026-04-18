@@ -44,6 +44,15 @@ class WeeklyReport(TimeStampedModel):
         db_index=True,
     )
 
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="assigned_reports",
+        null=True,
+        blank=True,
+        help_text="School staff member assigned to fill this report."
+    )
+
     submitted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

@@ -2,8 +2,12 @@
 Reports API v1 views.
 """
 
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import viewsets
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework import viewsets, permissions
+from common.permissions import (
+    IsSchool, IsDEO, IsAdminStaff, IsSchoolStaff,
+    IsDEOOrAdminStaff, IsSchoolOrStaff
+)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -16,6 +20,7 @@ from apps.reports.api.v1.serializers import (
     WeeklyStructuralReportSerializer,
 )
 from apps.reports.services import ReportCycleService
+from common.export import export_queryset_to_excel
 from apps.reports.models import (
     WeeklyElectricalReport,
     WeeklyIssues,
@@ -88,6 +93,14 @@ class WeeklyReportViewSet(viewsets.ModelViewSet):
     search_fields = ["school__name", "school__udise_code"]
     filterset_fields = ["school", "status", "week_start_date"]
     ordering_fields = ["week_start_date", "created_at", "status"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
+
+    @extend_schema(summary="Export reports to Excel", tags=["Reports"])
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        fields = ["school__name", "week_start_date", "week_end_date", "status", "submitted_at"]
+        return export_queryset_to_excel(queryset, fields, filename_prefix="weekly_reports")
 
     @extend_schema(
         summary="Submit and lock weekly report",
@@ -129,6 +142,7 @@ class WeeklyPlumbingReportViewSet(viewsets.ModelViewSet):
     queryset = WeeklyPlumbingReport.objects.select_related("weekly_report").all()
     serializer_class = WeeklyPlumbingReportSerializer
     filterset_fields = ["weekly_report", "drainage_blockage", "water_availability"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
 
 @extend_schema_view(
@@ -149,6 +163,7 @@ class WeeklyElectricalReportViewSet(viewsets.ModelViewSet):
     queryset = WeeklyElectricalReport.objects.select_related("weekly_report").all()
     serializer_class = WeeklyElectricalReportSerializer
     filterset_fields = ["weekly_report", "wiring_issues", "backup_available"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
 
 @extend_schema_view(
@@ -169,6 +184,7 @@ class WeeklyStructuralReportViewSet(viewsets.ModelViewSet):
     queryset = WeeklyStructuralReport.objects.select_related("weekly_report").all()
     serializer_class = WeeklyStructuralReportSerializer
     filterset_fields = ["weekly_report", "building_safety", "repair_required"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
 
 @extend_schema_view(
@@ -206,4 +222,5 @@ class WeeklyIssuesViewSet(viewsets.ModelViewSet):
     serializer_class = WeeklyIssuesSerializer
     search_fields = ["description"]
     filterset_fields = ["weekly_report", "issue_type", "severity", "is_resolved"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
     ordering_fields = ["severity", "created_at"]

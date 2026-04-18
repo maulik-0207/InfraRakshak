@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
@@ -270,6 +271,23 @@ CELERYBEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "initiate-weekly-report-cycle": {
+        "task": "initiate_weekly_report_cycle",
+        "schedule": crontab(hour=6, minute=0, day_of_week=1),  # Monday 6:00 AM
+    },
+    "run-weekly-prediction-batch": {
+        "task": "run_weekly_prediction_batch",
+        "schedule": crontab(hour=18, minute=0, day_of_week=1),  # Monday 6:00 PM
+    },
+    "send-daily-reminders": {
+        "task": "send_report_reminders",
+        "schedule": crontab(hour=9, minute=0),  # Daily 9:00 AM
+    },
+}
 
 
 # Django Logger Configurations

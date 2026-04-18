@@ -2,8 +2,14 @@
 Predictions API v1 views.
 """
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import viewsets
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from common.export import export_queryset_to_excel
+from common.permissions import (
+    IsSchool, IsDEO, IsAdminStaff, IsSchoolStaff,
+    IsDEOOrAdminStaff, IsSchoolOrStaff
+)
 
 from apps.predictions.api.v1.serializers import (
     DistrictReportSerializer,
@@ -55,6 +61,14 @@ class PredictionReportViewSet(viewsets.ModelViewSet):
     search_fields = ["school__name", "school__udise_code"]
     filterset_fields = ["school", "overall_risk_level", "weekly_report"]
     ordering_fields = ["priority_rank", "overall_score", "generated_at"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
+
+    @extend_schema(summary="Export predictions to Excel", tags=["Predictions"])
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        fields = ["school__name", "overall_score", "overall_risk_level", "priority_rank", "generated_at"]
+        return export_queryset_to_excel(queryset, fields, filename_prefix="prediction_reports")
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -82,6 +96,7 @@ class PredictionIssuesViewSet(viewsets.ModelViewSet):
     search_fields = ["issue_name", "recommended_action"]
     filterset_fields = ["prediction_report", "category", "severity"]
     ordering_fields = ["score", "severity"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
 
 @extend_schema_view(
@@ -112,3 +127,11 @@ class DistrictReportViewSet(viewsets.ModelViewSet):
     search_fields = ["district"]
     filterset_fields = ["district", "week_start_date"]
     ordering_fields = ["week_start_date", "avg_score", "high_risk_schools"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
+
+    @extend_schema(summary="Export district reports to Excel", tags=["Predictions"])
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        fields = ["district", "week_start_date", "avg_score", "high_risk_schools", "total_schools"]
+        return export_queryset_to_excel(queryset, fields, filename_prefix="district_predictions")
