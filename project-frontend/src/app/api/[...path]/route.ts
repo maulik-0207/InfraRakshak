@@ -24,15 +24,21 @@ async function handleProxyRequest(req: NextRequest, { params }: { params: Promis
 
   // Extract necessary headers
   const reqHeaders = new Headers();
-  reqHeaders.set("Content-Type", req.headers.get("Content-Type") || "application/json");
+  const contentType = req.headers.get("Content-Type");
+  if (contentType) reqHeaders.set("Content-Type", contentType);
 
   // SEPARATION OF CONCERN: 
-  // If we stored JWT in HttpOnly cookies previously, we attach it here natively
-  // without the client ever having access to localStorage JWT.
-  const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
-  if (token) {
-    reqHeaders.set("Authorization", `Bearer ${token}`);
+  // Prefer the client's explicit Authorization header if provided.
+  // Otherwise, fallback to the HttpOnly cookie.
+  const clientAuth = req.headers.get("Authorization");
+  if (clientAuth) {
+    reqHeaders.set("Authorization", clientAuth);
+  } else {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("access_token")?.value;
+    if (token) {
+      reqHeaders.set("Authorization", `Bearer ${token}`);
+    }
   }
 
   // AbortController ensures we don't hold Next.js threads hostages for 10s if the Django server dies

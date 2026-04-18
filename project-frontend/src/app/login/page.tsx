@@ -43,6 +43,12 @@ export default function LoginPage() {
 
       // Update auth store with token, role, and user data
       setAuth(data.access, data.role, data.user);
+      
+      // Fallback: manually store deo_id in localStorage in case Zustand persist ignores new schema fields
+      if (data.user?.deo_id) {
+        localStorage.setItem("deo_id", String(data.user.deo_id));
+      }
+      
       // This acts as a robust fallback if the backend redirect_url is missing or generic
       const getDashboardPath = (role: string = "", backendPath?: string) => {
         if (backendPath && backendPath !== "/dashboard" && backendPath !== "/dashboard/") {
