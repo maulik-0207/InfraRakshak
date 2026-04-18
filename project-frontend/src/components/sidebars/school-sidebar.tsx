@@ -14,12 +14,9 @@ export function SchoolSidebar() {
 
   if (!isMounted) return null
   const navItems = [
-    { title: "Dashboard", url: "/school/dashboard", icon: Home },
-    { title: "Manage Staff", url: "/school/staff", icon: ShieldCheck },
-    { title: "Infrastructure", url: "/school/infrastructure", icon: ClipboardCheck },
+    { title: "Dashboard & Management", url: "/school/dashboard", icon: Home },
     { title: "Weekly Reports", url: "/school/reports", icon: Calendar },
-    { title: "Account", url: "/school/account", icon: User },
-    { title: "Settings", url: "/settings", icon: Settings },
+    { title: "Account Settings", url: "/school/account", icon: User },
   ]
 
   return (

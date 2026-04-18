@@ -8,7 +8,9 @@ import {
   RefreshCw,
   FileText,
   Plus,
+  CheckCircle2,
 } from "lucide-react";
+import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import { useApi } from "@/hooks/use-api";
@@ -70,10 +72,23 @@ export default function StaffDashboard() {
   const { data: dashData, loading: dashLoading } = useApi<DashboardStats>(API.dashboard);
   const { data: reportsRaw, loading: reportsLoading } = useApi<
     PaginatedResponse<WeeklyReport>
-  >(`${API.reports.list}?ordering=-week_start_date&page_size=5`);
+  >(`${API.reports.list}?ordering=-created_at&page_size=5`);
 
   const stats = dashData?.stats;
   const reports = reportsRaw?.results ?? [];
+
+  // Define current week starting Monday for comparison
+  const now = new Date();
+  const currentMonday = new Date(now);
+  currentMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  currentMonday.setHours(0, 0, 0, 0);
+
+  const draftReport = reports.find((r) => {
+    if (r.status !== "DRAFT") return false;
+    const reportDate = new Date(r.week_start_date);
+    reportDate.setHours(0, 0, 0, 0);
+    return reportDate.getTime() === currentMonday.getTime();
+  });
 
   if (!isMounted) return <div className="min-h-screen" />;
 
@@ -94,12 +109,20 @@ export default function StaffDashboard() {
               Submit weekly infrastructure status reports for your school. Accuracy ensures timely maintenance.
             </p>
           </div>
-          <a
-            href="/reports"
-            className="relative z-10 flex items-center gap-2 bg-[#F54E00] text-white px-7 py-3 rounded-2xl font-black shadow-lg shadow-[#F54E00]/20 hover:scale-105 active:scale-95 transition-all shrink-0"
-          >
-            <Plus className="w-5 h-5" /> Start Weekly Report
-          </a>
+          {reportsLoading ? (
+            <div className="h-10 w-40 bg-white/10 rounded animate-pulse" />
+          ) : draftReport ? (
+            <Link
+              href={`/staff/reports/${draftReport.id}`}
+              className="relative z-10 flex items-center gap-2 bg-[#F54E00] text-white px-7 py-3 rounded-2xl font-black shadow-lg shadow-[#F54E00]/20 hover:scale-105 active:scale-95 transition-all shrink-0"
+            >
+              <FileText className="w-5 h-5" /> Continue Pending Report
+            </Link>
+          ) : (
+            <div className="relative z-10 px-6 py-3 bg-white/10 rounded-2xl text-[12px] font-bold text-white uppercase tracking-wider flex items-center gap-2 border border-white/10">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> No Pending Reports
+            </div>
+          )}
         </div>
       </div>
 
@@ -165,9 +188,10 @@ export default function StaffDashboard() {
           ) : (
             <div className="space-y-3">
               {reports.map((r) => (
-                <div
+                <Link
                   key={r.id}
-                  className="bg-white border border-[#b6b7af] p-4 rounded-xl flex items-center justify-between group hover:border-[#F54E00] cursor-pointer transition-all"
+                  href={`/staff/reports/${r.id}`}
+                  className="bg-white border border-[#b6b7af] p-4 rounded-xl flex items-center justify-between group hover:border-[#F54E00] cursor-pointer transition-all block"
                 >
                   <div className="flex items-center gap-4">
                     <div className="h-10 w-10 bg-[#eeefe9] rounded-lg flex items-center justify-center text-[#9ea096] group-hover:text-[#F54E00] transition-colors">
@@ -177,13 +201,13 @@ export default function StaffDashboard() {
                       <p className="text-sm font-bold text-[#23251d]">
                         Week of {new Date(r.week_start_date).toLocaleDateString("en-IN")}
                       </p>
-                      <span className={`text-[10px] font-black border px-2 py-0.5 rounded uppercase ${statusBadge(r.status)}`}>
+                      <span className={`text-[10px] font-black border px-2 py-0.5 rounded uppercase ${statusBadge(r.status)} mt-1 inline-block`}>
                         {r.status}
                       </span>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-[#9ea096] group-hover:text-[#F54E00] transform group-hover:translate-x-1 transition-all" />
-                </div>
+                </Link>
               ))}
             </div>
           )}

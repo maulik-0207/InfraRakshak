@@ -16,8 +16,7 @@ export function StaffSidebar() {
   const navItems = [
     { title: "Dashboard", url: "/staff/dashboard", icon: Home },
     { title: "Weekly Reports", url: "/staff/reports", icon: Calendar },
-    { title: "Account", url: "/staff/account", icon: User },
-    { title: "Settings", url: "/settings", icon: Settings },
+    { title: "Account Settings", url: "/staff/account", icon: User },
   ]
 
   return (

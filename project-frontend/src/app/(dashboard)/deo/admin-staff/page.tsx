@@ -78,42 +78,19 @@ export default function AdminStaffPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      console.log(">>> [DEBUG] Fetching DEO Profile ID");
-
-      let finalDeoId = null;
-      const deosRes = await fetch(`/api/v1/accounts/profiles/deos/`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      });
-      if (deosRes.ok) {
-        const deosData = await deosRes.json();
-        const profiles = deosData.results || deosData;
-        const match = profiles.find((p: any) => p.email === user?.email);
-        if (match) {
-          finalDeoId = match.id;
-          console.log(">>> [DEBUG] Found DEO Profile ID:", finalDeoId);
-        } else {
-          throw new Error("Could not find your DEO profile. Are you logged in as a DEO?");
-        }
-      } else {
-        throw new Error("Failed to fetch DEO profiles to resolve ID.");
-      }
-
-      const res = await fetch(`/api/v1/accounts/profiles/admin-staff/`, {
+      const res = await fetch(`/api/v1/accounts/profiles/admin-staff/onboard/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
-          parent_deo: finalDeoId,
           full_name: form.full_name,
           email: form.email,
           phone_no: form.phone_no,
         }),
       });
 
-      // Always refresh the list — on 500 the record may still have been saved
-      // (backend crashes on email send AFTER the DB write succeeds)
       await fetchStaff();
 
       if (res.ok) {
@@ -121,7 +98,6 @@ export default function AdminStaffPage() {
         setShowModal(false);
         setForm(EMPTY_FORM);
       } else if (res.status === 500) {
-        // Check if the new member appeared in the refreshed list
         showToast(
           "The server returned an error (likely email config). Check the list — the staff member may still have been added.",
           "error"
@@ -143,7 +119,6 @@ export default function AdminStaffPage() {
       setSubmitting(false);
     }
   };
-
 
   const filteredStaff = staffList.filter(
     (s) =>

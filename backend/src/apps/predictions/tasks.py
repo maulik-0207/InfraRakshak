@@ -12,7 +12,8 @@ def run_prediction_for_report(report_id: int):
     Task triggered after a weekly report is submitted.
     Runs ML inference and saves results.
     """
-    return PredictionService.run_inference(report_id)
+    pred = PredictionService.run_inference(report_id)
+    return pred.id if pred else None
 
 
 @shared_task(name="run_weekly_prediction_batch")

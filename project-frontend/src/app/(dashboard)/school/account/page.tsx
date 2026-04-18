@@ -2,9 +2,9 @@
 
 import { useAuthStore } from "@/store/auth-store";
 import { useIsMounted } from "@/hooks/use-is-mounted";
-import { User, Mail, Shield, Building } from "lucide-react";
+import { User, Mail, Shield, Building, FileText } from "lucide-react";
 
-export default function SettingsPage() {
+export default function AccountPage() {
   const isMounted = useIsMounted();
   const { user, role } = useAuthStore();
 
@@ -53,11 +53,20 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-sm font-bold mb-1">Assigned Organization</h3>
             <p className="text-sm opacity-80 leading-relaxed">
-              Your account is managed by the District Education Office. If you need to change your email or transfer to another school/district, please contact your system administrator.
+              Your account is an administrative School Principal account. You have authority over ground staff accounts. To change UDISE mappings, please contact your District Education Officer (DEO).
             </p>
           </div>
         </div>
       </div>
+      
+      <div className="bg-[#eeefe9] border border-[#b6b7af] rounded-3xl p-8 shadow-sm flex flex-col items-center text-center">
+         <FileText className="w-12 h-12 text-[#b6b7af] mb-4" />
+         <h2 className="text-lg font-black text-[#23251d] mb-2">School Profile Data</h2>
+         <p className="text-sm text-[#4d4f46] max-w-md">
+           Looking to update your School Demographics, Area Type, or Classroom counts? You can find all school-specific configurations under your unified Dashboard.
+         </p>
+      </div>
+
     </div>
   );
 }

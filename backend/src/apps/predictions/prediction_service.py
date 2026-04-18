@@ -208,11 +208,19 @@ class PredictionService:
         if not model:
             return 0.0
             
-        # Convert to DF and align columns
+        # Convert to DF
         df = pd.DataFrame([features_dict])
         
+        # Align features to what the model expects to avoid sklearn warnings/errors
+        if hasattr(model, 'feature_names_in_'):
+            expected_features = list(model.feature_names_in_)
+            for feat in expected_features:
+                if feat not in df.columns:
+                    df[feat] = 0
+            # Select and reorder columns
+            df = df[expected_features]
+        
         # Predict probability of class 1 (Failure)
-        # Using [0, 1] scale
         try:
             proba = model.predict_proba(df)[0][1]
             return float(proba * 100) # Scale to 0-100

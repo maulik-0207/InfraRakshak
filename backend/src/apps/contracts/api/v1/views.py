@@ -119,6 +119,29 @@ class ContractViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "estimated_cost", "priority_level"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        # DEO/Admin Staff see everything
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            return qs
+            
+        # Contractors see Open contracts OR those assigned to them
+        if user.role == user.Role.CONTRACTOR:
+            from django.db.models import Q
+            return qs.filter(
+                Q(status__in=["OPEN", "IN_BIDDING"]) |
+                Q(assignment__contractor__user=user)
+            ).distinct()
+            
+        # Schools see contracts for their school
+        if user.role == user.Role.SCHOOL:
+            if hasattr(user, 'school_profile'):
+                return qs.filter(school__udise_code=user.school_profile.udise_code)
+            
+        return qs.none()
+
     @extend_schema(summary="Export contracts to CSV", tags=["Contracts"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
@@ -173,6 +196,23 @@ class ContractBidViewSet(viewsets.ModelViewSet):
     serializer_class = ContractBidSerializer
     ordering_fields = ["bid_amount", "submitted_at"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            return qs
+            
+        if user.role == user.Role.CONTRACTOR:
+            return qs.filter(contractor__user=user)
+            
+        if user.role == user.Role.SCHOOL:
+            # Schools see bids for their contracts
+            if hasattr(user, 'school_profile'):
+                return qs.filter(contract__school__udise_code=user.school_profile.udise_code)
+        
+        return qs.none()
 
     def perform_create(self, serializer):
         ContractLifecycleService.submit_bid(
@@ -265,6 +305,22 @@ class WorkProgressViewSet(viewsets.ModelViewSet):
     ordering_fields = ["progress_percentage", "updated_at"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            return qs
+            
+        if user.role == user.Role.CONTRACTOR:
+            return qs.filter(contract__assignment__contractor__user=user)
+            
+        if user.role == user.Role.SCHOOL:
+            if hasattr(user, 'school_profile'):
+                return qs.filter(contract__school__udise_code=user.school_profile.udise_code)
+                
+        return qs.none()
+
 
 # ===========================================================================
 # Work Proof (File Upload)
@@ -316,12 +372,31 @@ class WorkProofViewSet(viewsets.ModelViewSet):
     ordering_fields = ["uploaded_at"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            return qs
+            
+        if user.role == user.Role.CONTRACTOR:
+            return qs.filter(contract__assignment__contractor__user=user)
+            
+        if user.role == user.Role.SCHOOL:
+            if hasattr(user, 'school_profile'):
+                return qs.filter(contract__school__udise_code=user.school_profile.udise_code)
+                
+        return qs.none()
+
     def perform_create(self, serializer):
+        # Extract progress percentage from request data if available, default to 100 if final proof
+        progress = self.request.data.get("progress_percentage", 100)
+        
         ContractLifecycleService.upload_work_proof(
             contract_id=serializer.validated_data["contract"].id,
             user=self.request.user,
             file=serializer.validated_data["file"],
-            progress_percent=80,  # Placeholder, usually would take from request body
+            progress_percent=int(progress),
             comment=serializer.validated_data.get("description", "")
         )
 
