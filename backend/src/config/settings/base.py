@@ -48,9 +48,21 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Third-party
     'django_celery_results',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
+    'django_filters',
+    'drf_spectacular',
+
+    # Project apps
+    'apps.accounts',
+    'apps.schools',
+    'apps.reports',
+    'apps.predictions',
+    'apps.contracts',
+    'apps.notifications',
 ]
 
 MIDDLEWARE = [
@@ -139,14 +151,87 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
 ]
 
-# AUTH_USER_MODEL = "AppName.ModelName"
+AUTH_USER_MODEL = "accounts.User"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ---------------------------------------------------------------------------
+# Django REST Framework
+# ---------------------------------------------------------------------------
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "DEFAULT_FILTER_BACKENDS": (
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ),
+    "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler",
+}
+
+# ---------------------------------------------------------------------------
+# drf-spectacular (OpenAPI / Swagger)
+# ---------------------------------------------------------------------------
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "InfraRakshak API",
+    "DESCRIPTION": (
+        "Production API for the InfraRakshak school infrastructure monitoring platform.\n\n"
+        "## Authentication\n"
+        "All endpoints (except login/register) require a JWT Bearer token.\n"
+        "Obtain tokens via `POST /api/v1/auth/token/`.\n\n"
+        "Pass the access token in the `Authorization` header:\n"
+        "```\nAuthorization: Bearer <access_token>\n```"
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": "/api/v1",
+    "TAGS": [
+        {"name": "Auth", "description": "Authentication & token management"},
+        {"name": "Accounts", "description": "User profiles and role management"},
+        {"name": "Schools", "description": "School, profile, and infrastructure data"},
+        {"name": "Reports", "description": "Weekly infrastructure reports"},
+        {"name": "Predictions", "description": "ML-driven risk predictions and district reports"},
+        {"name": "Contracts", "description": "Contract lifecycle: bidding, assignment, progress, payment"},
+        {"name": "Notifications", "description": "In-app user notifications"},
+    ],
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayOperationId": False,
+        "filter": True,
+    },
+}
+
+# ---------------------------------------------------------------------------
+# SimpleJWT
+# ---------------------------------------------------------------------------
+
+from datetime import timedelta  # noqa: E402
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0.4/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC' # India: Asia/Kolkata
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
