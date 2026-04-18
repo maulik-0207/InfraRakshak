@@ -34,6 +34,24 @@ class SchoolProfileSerializer(serializers.ModelSerializer):
         source="get_area_type_display", read_only=True,
     )
 
+    # Proxied fields from the associated School model
+    name = serializers.CharField(source="school.name", required=False)
+    udise_code = serializers.CharField(source="school.udise_code", required=False)
+    address = serializers.CharField(source="school.address", required=False)
+    district = serializers.CharField(source="school.district", required=False)
+    block = serializers.CharField(source="school.block", required=False)
+    cluster = serializers.CharField(source="school.cluster", required=False)
+    pincode = serializers.CharField(source="school.pincode", required=False)
+    latitude = serializers.DecimalField(source="school.latitude", max_digits=10, decimal_places=7, required=False)
+    longitude = serializers.DecimalField(source="school.longitude", max_digits=10, decimal_places=7, required=False)
+    
+    school_type = serializers.CharField(source="school.school_type", required=False)
+    weather_zone = serializers.CharField(source="school.weather_zone", required=False)
+    material_type = serializers.CharField(source="school.material_type", required=False)
+    building_age = serializers.IntegerField(source="school.building_age", required=False)
+    is_girls_school = serializers.BooleanField(source="school.is_girls_school", required=False)
+    flood_prone_area = serializers.BooleanField(source="school.flood_prone_area", required=False)
+
     class Meta:
         model = SchoolProfile
         fields = [
@@ -43,8 +61,41 @@ class SchoolProfileSerializer(serializers.ModelSerializer):
             "area_type", "area_type_display",
             "electricity_available", "internet_available", "drinking_water_available",
             "academic_year", "created_at", "updated_at",
+            "name", "udise_code", "address", "district", "block", "cluster",
+            "pincode", "latitude", "longitude",
+            "school_type", "weather_zone", "material_type",
+            "building_age", "is_girls_school", "flood_prone_area"
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def update(self, instance, validated_data):
+        # Extract fields belong to the related School model
+        school_data = validated_data.pop('school', {})
+        
+        # Update the related School instance if any data provided
+        if school_data:
+            school = instance.school
+            for attr, value in school_data.items():
+                setattr(school, attr, value)
+            school.save()
+            
+        return super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        # Extract fields belong to the related School model
+        school_data = validated_data.pop('school', {})
+        
+        # In perform_create, school_obj is already passed in. 
+        # But if it's not, we might need to handle it.
+        # Usually, for this specific flow, School exists already.
+        
+        school = validated_data.get('school')
+        if school and school_data:
+            for attr, value in school_data.items():
+                setattr(school, attr, value)
+            school.save()
+            
+        return super().create(validated_data)
 
     def validate(self, attrs: dict) -> dict:
         boys = attrs.get("total_boys", 0)

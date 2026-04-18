@@ -2,6 +2,7 @@
 Accounts API v1 views — Refactored for New Workflows.
 """
 
+from datetime import date, timedelta
 from rest_framework import permissions, status, viewsets, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -113,16 +114,40 @@ class DashboardViewSet(viewsets.ViewSet):
             }
         elif role == User.Role.SCHOOL:
             from apps.reports.models import WeeklyReport
+            udise = user.school_profile.udise_code if hasattr(user, 'school_profile') else None
+            
+            # Filter for current cycle if we want to be accurate about "Current" status
+            today = date.today()
+            current_monday = today - timedelta(days=today.weekday())
+            
             data["stats"] = {
-                "total_staff": user.school_profile.staff_members.count(),
-                "pending_reports": WeeklyReport.objects.filter(school__school_profile=user.school_profile, status="DRAFT").count(),
-                "submitted_reports": WeeklyReport.objects.filter(school__school_profile=user.school_profile, status="SUBMITTED").count(),
+                "total_staff": user.school_profile.staff_members.count() if hasattr(user, 'school_profile') else 0,
+                "pending_reports": WeeklyReport.objects.filter(school__udise_code=udise, status="DRAFT", week_start_date=current_monday).count() if udise else 0,
+                "submitted_reports": WeeklyReport.objects.filter(school__udise_code=udise, status="SUBMITTED").count() if udise else 0,
             }
         elif role == User.Role.CONTRACTOR:
-            from apps.contracts.models import Contract
+            from apps.contracts.models import Contract, ContractBid
+            from django.db.models import Sum
+            
+            assigned_qs = Contract.objects.filter(assignment__contractor__user=user)
+            
             data["stats"] = {
-                "assigned_contracts": Contract.objects.filter(assigned_contractor=user).count(),
-                "active_bids": 0, # Placeholder
+                "active_projects": assigned_qs.filter(status="IN_PROGRESS").count(),
+                "pending_bids": ContractBid.objects.filter(contractor__user=user, status="PENDING").count(),
+                "total_earnings": assigned_qs.filter(status="COMPLETED").aggregate(total=Sum('assignment__final_amount'))['total'] or 0,
+            }
+        elif role == User.Role.STAFF:
+            from apps.reports.models import WeeklyReport
+            udise = None
+            if hasattr(user, 'staff_profile') and user.staff_profile.parent_school:
+                udise = user.staff_profile.parent_school.udise_code
+            
+            today = date.today()
+            current_monday = today - timedelta(days=today.weekday())
+            
+            data["stats"] = {
+                "weekly_reports_submitted": WeeklyReport.objects.filter(submitted_by=user).count(),
+                "pending_reports": WeeklyReport.objects.filter(status="DRAFT", school__udise_code=udise, week_start_date=current_monday).count() if udise else 0,
             }
         
         return Response(data)
@@ -196,7 +221,7 @@ class SchoolRegistrationView(APIView):
                 value={
                     "email": "principal@mg_highschool.edu",
                     "password": "SecurePassword123",
-                    "school_id": "SCH-00123",
+                    "udise_code": "24070609605",
                     "school_name": "Mahatma Gandhi High School",
                     "phone_no": "9876543210",
                     "district": "Ahmedabad",
@@ -338,6 +363,62 @@ class AdminStaffProfileViewSet(viewsets.ModelViewSet):
     serializer_class = AdminStaffProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
+    @extend_schema(
+        summary="Single Admin Staff Onboarding", 
+        tags=["Profiles"],
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "email": {"type": "string"},
+                    "full_name": {"type": "string"},
+                    "phone_no": {"type": "string"}
+                },
+                "required": ["email", "full_name"]
+            }
+        }
+    )
+    @action(detail=False, methods=["post"], url_path="onboard")
+    def onboard(self, request):
+        email = request.data.get("email")
+        full_name = request.data.get("full_name")
+        phone_no = request.data.get("phone_no", "")
+        
+        if not email or not full_name:
+            return Response({"error": "Email and Full Name are required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if User.objects.filter(email=email).exists():
+            return Response({"error": "User with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from apps.accounts.services import OnboardingService
+        from apps.accounts.tasks import send_account_credentials_task
+        
+        deo_profile = getattr(request.user, 'deo_profile', None)
+        if not deo_profile:
+            return Response({"error": "Only DEOs can onboard Admin staff."}, status=status.HTTP_403_FORBIDDEN)
+            
+        password = OnboardingService.generate_random_password()
+        
+        user = User.objects.create_user(
+            email=email, password=password, role=User.Role.ADMIN_STAFF, is_verified=True
+        )
+            
+        profile = AdminStaffProfile.objects.create(
+            user=user,
+            parent_deo=deo_profile,
+            full_name=full_name,
+            phone_no=phone_no
+        )
+        
+        send_account_credentials_task.delay(
+            email=user.email,
+            name=full_name,
+            password=password,
+            role_display=user.get_role_display()
+        )
+        
+        return Response(AdminStaffProfileSerializer(profile).data, status=status.HTTP_201_CREATED)
+
 @extend_schema_view(
     list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List school staff profiles"}),
     retrieve=extend_schema(**{**PROFILE_KWARGS["retrieve"], "summary": "Get school staff profile details"}),
@@ -349,3 +430,75 @@ class StaffProfileViewSet(viewsets.ModelViewSet):
     queryset = StaffProfile.objects.all()
     serializer_class = StaffProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            if hasattr(user, 'deo_profile'):
+                return qs.filter(parent_school__district=user.deo_profile.district)
+        elif user.role == user.Role.SCHOOL:
+            if hasattr(user, 'school_profile'):
+                return qs.filter(parent_school=user.school_profile)
+        elif user.role == user.Role.STAFF:
+            if hasattr(user, 'staff_profile'):
+                return qs.filter(id=user.staff_profile.id)
+                
+        return qs.none()
+
+    @extend_schema(
+        summary="Single Staff Onboarding", 
+        tags=["Profiles"],
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "email": {"type": "string"},
+                    "full_name": {"type": "string"},
+                    "phone_no": {"type": "string"}
+                },
+                "required": ["email", "full_name"]
+            }
+        }
+    )
+    @action(detail=False, methods=["post"], url_path="onboard")
+    def onboard(self, request):
+        email = request.data.get("email")
+        full_name = request.data.get("full_name")
+        phone_no = request.data.get("phone_no", "")
+        
+        if not email or not full_name:
+            return Response({"error": "Email and Full Name are required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if User.objects.filter(email=email).exists():
+            return Response({"error": "User with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from apps.accounts.services import OnboardingService
+        from apps.accounts.tasks import send_account_credentials_task
+        
+        school_profile = getattr(request.user, 'school_profile', None)
+        if not school_profile:
+            return Response({"error": "Only School Principals can onboard staff."}, status=status.HTTP_403_FORBIDDEN)
+            
+        password = OnboardingService.generate_random_password()
+        
+        user = User.objects.create_user(
+            email=email, password=password, role=User.Role.STAFF, is_verified=True
+        )
+            
+        profile = StaffProfile.objects.create(
+            user=user,
+            parent_school=school_profile,
+            full_name=full_name,
+            phone_no=phone_no
+        )
+        
+        send_account_credentials_task.delay(
+            email=user.email,
+            name=full_name,
+            password=password,
+            role_display=user.get_role_display()
+        )
+        
+        return Response(StaffProfileSerializer(profile).data, status=status.HTTP_201_CREATED)

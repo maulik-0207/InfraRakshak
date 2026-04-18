@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import { User, Mail, Shield, Building } from "lucide-react";
 
-export default function SettingsPage() {
+export default function AccountPage() {
   const isMounted = useIsMounted();
   const { user, role } = useAuthStore();
 
@@ -53,7 +53,7 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-sm font-bold mb-1">Assigned Organization</h3>
             <p className="text-sm opacity-80 leading-relaxed">
-              Your account is managed by the District Education Office. If you need to change your email or transfer to another school/district, please contact your system administrator.
+              Your account is managed by the central education office. If you need to change your email or transfer to another school/district, please contact your system administrator.
             </p>
           </div>
         </div>

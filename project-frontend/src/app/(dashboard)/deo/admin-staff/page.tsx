@@ -16,6 +16,9 @@ export default function AdminStaffPage() {
   const [staffList, setStaffList] = useState<AdminStaff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newStaff, setNewStaff] = useState({ full_name: "", email: "", phone_no: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchStaff();
@@ -36,6 +39,29 @@ export default function AdminStaffPage() {
     }
   };
 
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/v1/accounts/profiles/admin-staff/onboard/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newStaff)
+      });
+      if (res.ok) {
+        setNewStaff({ full_name: "", email: "", phone_no: "" });
+        setShowAddForm(false);
+        fetchStaff();
+      } else {
+        alert("Failed to onboard staff. Please check inputs.");
+      }
+    } catch {
+      alert("Network error.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredStaff = staffList.filter(s => 
     s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -52,11 +78,42 @@ export default function AdminStaffPage() {
             </h1>
             <p className="text-[#4d4f46] mt-2 font-medium">Manage your district administrative team and permissions.</p>
           </div>
-          <button className="h-14 px-8 bg-[#23251d] text-white font-black rounded-2xl shadow-xl transition-all hover:bg-[#F54E00] active:scale-95 flex items-center gap-2">
+          <button 
+             onClick={() => setShowAddForm(!showAddForm)}
+             className="h-14 px-8 bg-[#23251d] text-white font-black rounded-2xl shadow-xl transition-all hover:bg-[#F54E00] active:scale-95 flex items-center gap-2"
+          >
             <UserPlus size={22} />
-            Onboard Personnel
+            {showAddForm ? "Cancel" : "Onboard Personnel"}
           </button>
         </div>
+
+        {/* Add Staff Form */}
+        {showAddForm && (
+          <form onSubmit={handleAddStaff} className="bg-white rounded-[2rem] border border-[#F54E00] shadow-[0_8px_30px_rgb(245,78,0,0.1)] p-8 animate-in slide-in-from-top-4">
+            <h3 className="text-lg font-black text-[#23251d] mb-6 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-[#F54E00]" /> Grant Administrative Access
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-[11px] font-black uppercase text-[#9ea096] mb-2 tracking-widest">Full Name</label>
+                <input required type="text" value={newStaff.full_name} onChange={e => setNewStaff({...newStaff, full_name: e.target.value})} className="w-full h-12 bg-[#eeefe9] border-transparent focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] rounded-xl px-4 text-sm font-semibold transition-all" placeholder="John Doe" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black uppercase text-[#9ea096] mb-2 tracking-widest">Email Address</label>
+                <input required type="email" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full h-12 bg-[#eeefe9] border-transparent focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] rounded-xl px-4 text-sm font-semibold transition-all" placeholder="john@edugov.in" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black uppercase text-[#9ea096] mb-2 tracking-widest">Phone Number (Optional)</label>
+                <input type="text" value={newStaff.phone_no} onChange={e => setNewStaff({...newStaff, phone_no: e.target.value})} className="w-full h-12 bg-[#eeefe9] border-transparent focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] rounded-xl px-4 text-sm font-semibold transition-all" placeholder="+91 9876543210" />
+              </div>
+            </div>
+            <div className="mt-8 flex justify-end">
+              <button disabled={isSubmitting} type="submit" className="h-12 bg-[#F54E00] text-white px-8 rounded-xl font-black flex items-center gap-2 disabled:opacity-50 hover:shadow-lg hover:shadow-[#F54E00]/20 transition-all">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Create & Send Credentials
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Main Content Area */}
         <div className="bg-[#eeefe9] rounded-[2.5rem] border border-[#b6b7af] shadow-sm overflow-hidden backdrop-blur-sm">

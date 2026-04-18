@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { 
   FileText, 
   Calendar, 
@@ -74,9 +75,6 @@ export default function SchoolReports() {
             Track and manage your weekly infrastructure health checkups.
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-[#F54E00] text-white px-6 py-3 rounded-lg font-bold shadow-[0_4px_0_0_#b17816] hover:translate-y-[-2px] active:translate-y-[2px] transition-all">
-          <Plus className="w-5 h-5" /> Generate Current Weekly Report
-        </button>
       </div>
 
       {/* Main Content: Split grid */}
@@ -99,23 +97,25 @@ export default function SchoolReports() {
           ) : (
             <div className="space-y-3">
               {reports.map((report) => (
-                <div key={report.id} className="group flex items-center gap-4 p-5 bg-[#eeefe9] border border-[#b6b7af] rounded-xl hover:border-[#F54E00] transition-all cursor-pointer shadow-sm hover:shadow-md">
-                  <div className="h-12 w-12 rounded-lg bg-white border border-[#b6b7af] flex items-center justify-center text-[#23251d] font-bold">
-                    #{report.id.toString().padStart(3, '0')}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="font-bold text-[#23251d]">Report Week</span>
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-black uppercase ${getStatusStyle(report.status)}`}>
-                        {getStatusIcon(report.status)} {report.status_display}
-                      </span>
+                <Link href={`/school/reports/${report.id}`} key={report.id} className="group flex items-center gap-4 p-5 bg-[#eeefe9] border border-[#b6b7af] rounded-xl hover:border-[#F54E00] transition-all cursor-pointer shadow-sm hover:shadow-md block">
+                  <div className="flex w-full items-center gap-4">
+                    <div className="h-12 w-12 rounded-lg bg-white border border-[#b6b7af] flex items-center justify-center text-[#23251d] font-bold shrink-0">
+                      #{report.id.toString().padStart(3, '0')}
                     </div>
-                    <p className="text-sm text-[#4d4f46]">
-                      {new Date(report.week_start_date).toLocaleDateString()} — {new Date(report.week_end_date).toLocaleDateString()}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-bold text-[#23251d]">Report Week</span>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-black uppercase ${getStatusStyle(report.status)}`}>
+                          {getStatusIcon(report.status)} {report.status_display}
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#4d4f46]">
+                        {new Date(report.week_start_date).toLocaleDateString()} — {new Date(report.week_end_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-[#9ea096] group-hover:text-[#F54E00] transform group-hover:translate-x-1 transition-all shrink-0" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-[#9ea096] group-hover:text-[#F54E00] transform group-hover:translate-x-1 transition-all" />
-                </div>
+                </Link>
               ))}
             </div>
           )}

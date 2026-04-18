@@ -4,6 +4,7 @@ Schools API v1 views.
 
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets, permissions
+from rest_framework.response import Response
 from rest_framework.decorators import action
 from common.permissions import (
     IsSchool, IsDEO, IsAdminStaff, IsSchoolStaff,
@@ -70,7 +71,32 @@ class SchoolViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "udise_code", "district"]
     filterset_fields = ["district", "block", "school_type"]
     ordering_fields = ["name", "district", "created_at"]
-    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        # DEO/Admin Staff can see schools in their district
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            if hasattr(user, 'deo_profile'):
+                return qs.filter(district=user.deo_profile.district)
+            return qs.none()
+            
+        # School/Staff can only see their own school
+        elif user.role in [user.Role.SCHOOL, user.Role.STAFF]:
+            udise = None
+            if hasattr(user, 'school_profile'):
+                udise = user.school_profile.udise_code
+            elif hasattr(user, 'staff_profile') and user.staff_profile.parent_school:
+                udise = user.staff_profile.parent_school.udise_code
+            
+            if udise:
+                return qs.filter(udise_code=udise)
+            return qs.none()
+            
+        return qs.none()
+
     def perform_create(self, serializer):
         """Overrides create to use the workflow service."""
         SchoolWorkflowService.submit_registration(
@@ -84,6 +110,16 @@ class SchoolViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
         fields = ["udise_code", "name", "district", "block", "school_type", "is_active"]
         return export_queryset_to_excel(queryset, fields, filename_prefix="schools_registry")
+
+    @extend_schema(summary="Get my school details", tags=["Schools"])
+    @action(detail=False, methods=["get"])
+    def me(self, request):
+        """Returns the current user's associated school details."""
+        school = self.get_queryset().first()
+        if not school:
+            return Response({"detail": "No school found for this user."}, status=404)
+        serializer = self.get_serializer(school)
+        return Response(serializer.data)
 
 
 @extend_schema_view(
@@ -111,6 +147,38 @@ class SchoolProfileViewSet(viewsets.ModelViewSet):
     search_fields = ["school__name", "school__udise_code"]
     filterset_fields = ["area_type", "academic_year"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            if hasattr(user, 'deo_profile'):
+                return qs.filter(school__district=user.deo_profile.district)
+            return qs.none()
+            
+        elif user.role in [user.Role.SCHOOL, user.Role.STAFF]:
+            udise = None
+            if hasattr(user, 'school_profile'):
+                udise = user.school_profile.udise_code
+            elif hasattr(user, 'staff_profile') and user.staff_profile.parent_school:
+                udise = user.staff_profile.parent_school.udise_code
+                
+            if udise:
+                return qs.filter(school__udise_code=udise)
+            return qs.none()
+            
+        return qs.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role in [user.Role.SCHOOL, user.Role.STAFF]:
+            from apps.schools.models import School
+            udise = user.school_profile.udise_code if hasattr(user, 'school_profile') else user.staff_profile.parent_school.udise_code
+            school_obj = School.objects.get(udise_code=udise)
+            serializer.save(school=school_obj)
+        else:
+            serializer.save()
 
 
 @extend_schema_view(
@@ -144,6 +212,28 @@ class SchoolInfrastructureViewSet(viewsets.ModelViewSet):
     filterset_fields = ["school", "building_condition", "wiring_condition", "survey_date"]
     ordering_fields = ["survey_date", "inspection_score"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            if hasattr(user, 'deo_profile'):
+                return qs.filter(school__district=user.deo_profile.district)
+            return qs.none()
+            
+        elif user.role in [user.Role.SCHOOL, user.Role.STAFF]:
+            udise = None
+            if hasattr(user, 'school_profile'):
+                udise = user.school_profile.udise_code
+            elif hasattr(user, 'staff_profile') and user.staff_profile.parent_school:
+                udise = user.staff_profile.parent_school.udise_code
+                
+            if udise:
+                return qs.filter(school__udise_code=udise)
+            return qs.none()
+            
+        return qs.none()
 
 # ===========================================================================
 # Registration Request ViewSet

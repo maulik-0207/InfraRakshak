@@ -95,6 +95,28 @@ class WeeklyReportViewSet(viewsets.ModelViewSet):
     ordering_fields = ["week_start_date", "created_at", "status"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        
+        if user.role in [user.Role.DEO, user.Role.ADMIN_STAFF]:
+            if hasattr(user, 'deo_profile'):
+                return qs.filter(school__district=user.deo_profile.district)
+            return qs.none()
+            
+        elif user.role in [user.Role.SCHOOL, user.Role.STAFF]:
+            udise = None
+            if hasattr(user, 'school_profile'):
+                udise = user.school_profile.udise_code
+            elif hasattr(user, 'staff_profile') and user.staff_profile.parent_school:
+                udise = user.staff_profile.parent_school.udise_code
+                
+            if udise:
+                return qs.filter(school__udise_code=udise)
+            return qs.none()
+            
+        return qs.none()
+
     @extend_schema(summary="Export reports to CSV", tags=["Reports"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):

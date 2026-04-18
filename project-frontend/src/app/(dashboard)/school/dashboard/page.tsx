@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   Users,
   ClipboardCheck,
@@ -13,6 +14,8 @@ import {
   CheckCircle2,
   ChevronRight,
   Plus,
+  Building,
+  Save,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { useIsMounted } from "@/hooks/use-is-mounted";
@@ -174,9 +177,10 @@ function OverviewPanel() {
           ) : (
             <div className="divide-y divide-[#b6b7af]/30">
               {reports.map((r) => (
-                <div
+                <Link
+                  href={`/school/reports/${r.id}`}
                   key={r.id}
-                  className="flex items-center justify-between px-8 py-4 hover:bg-white/40 transition-colors group cursor-pointer"
+                  className="flex items-center justify-between px-8 py-4 hover:bg-white/40 transition-colors group cursor-pointer block"
                 >
                   <div>
                     <p className="font-semibold text-[#23251d] text-sm">
@@ -194,7 +198,7 @@ function OverviewPanel() {
                     </span>
                     <ChevronRight className="w-4 h-4 text-[#9ea096] group-hover:text-[#F54E00] transition-colors" />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -255,7 +259,10 @@ function StaffPanel() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const staffList = staffRaw?.results ?? [];
 
@@ -282,88 +289,88 @@ function StaffPanel() {
     }
   };
 
-  const handleUpload = async (file: File) => {
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("role", "STAFF");
-
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName || !email) {
+      showMessage("Name and Email are required.", "error");
+      return;
+    }
+    setAdding(true);
     try {
-      const res = await fetch(API.onboard.bulk, { method: "POST", body: formData });
+      const res = await fetch(`${API.profiles.staff}onboard/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: fullName, email, phone_no: phone }),
+      });
       const data = await res.json();
       if (res.ok) {
-        showMessage(data.message ?? "Staff onboarded successfully!", "success");
+        showMessage("Staff onboarded! Credentials emailed successfully.", "success");
+        setFullName("");
+        setEmail("");
+        setPhone("");
         refetch();
       } else {
-        showMessage(data.error ?? data.detail ?? "Upload failed.", "error");
+        showMessage(data.error ?? data.detail ?? "Failed to onboard staff.", "error");
       }
     } catch {
-      showMessage("Upload failed. Check your connection.", "error");
+      showMessage("Network error. Try again.", "error");
     } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setAdding(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-[#23251d]">School Staff</h2>
-          <p className="text-sm text-[#4d4f46]">
-            Manage inspection staff assigned to your school.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls"
-            id="staff-upload"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleUpload(f);
-            }}
-          />
-          <label
-            htmlFor="staff-upload"
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all select-none
-              ${uploading ? "bg-[#b6b7af] text-white cursor-not-allowed" : "bg-[#23251d] text-white hover:bg-[#F54E00]"}`}
+    <div className="space-y-8">
+      {/* Head & Form */}
+      <div>
+        <h2 className="text-2xl font-black text-[#23251d] mb-1">School Staff</h2>
+        <p className="text-sm text-[#4d4f46] mb-6">
+          Add ground staff to manage infrastructure reporting. Passwords will be emailed automatically.
+        </p>
+
+        <form onSubmit={handleAddSubmit} className="bg-[#eeefe9] border border-[#b6b7af] rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 w-full space-y-1.5">
+            <label className="text-[11px] font-black uppercase text-[#9ea096] tracking-widest pl-1">Full Name *</label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] transition-all"
+              placeholder="e.g. Rahul Sharma"
+            />
+          </div>
+          <div className="flex-1 w-full space-y-1.5">
+            <label className="text-[11px] font-black uppercase text-[#9ea096] tracking-widest pl-1">Email Address *</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] transition-all"
+              placeholder="rahul@example.com"
+            />
+          </div>
+          <div className="flex-1 w-full space-y-1.5">
+            <label className="text-[11px] font-black uppercase text-[#9ea096] tracking-widest pl-1">Phone Number</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] transition-all"
+              placeholder="+91 9999999999"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={adding}
+            className="w-full md:w-auto h-11 px-6 bg-[#23251d] text-white rounded-xl font-bold hover:bg-[#F54E00] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Upload className="w-4 h-4" />
-            {uploading ? "Uploading…" : "Upload Excel"}
-          </label>
-        </div>
+            {adding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Add Staff
+          </button>
+        </form>
       </div>
-
-      {/* Feedback */}
-      {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${
-          message.type === "success"
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-            : "bg-red-50 text-red-700 border border-red-200"
-        }`}>
-          {message.type === "success"
-            ? <CheckCircle2 className="w-4 h-4 shrink-0" />
-            : <AlertCircle className="w-4 h-4 shrink-0" />}
-          {message.text}
-        </div>
-      )}
-
-      {/* Upload note */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex gap-3">
-        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-        <div>
-          <strong>Excel format required.</strong> Columns:{" "}
-          <code className="bg-amber-100 px-1 rounded">email</code>,{" "}
-          <code className="bg-amber-100 px-1 rounded">full_name</code>,{" "}
-          <code className="bg-amber-100 px-1 rounded">phone_no</code>. Accounts are auto-created and passwords emailed.
-        </div>
-      </div>
-
-      {/* Table */}
       <div className="bg-[#eeefe9] border border-[#b6b7af] rounded-2xl overflow-hidden">
         {loading ? (
           <Spinner />
@@ -418,13 +425,450 @@ function StaffPanel() {
   );
 }
 
+// ─── Data Management Tab ──────────────────────────────────────────────────────
+
+function DataPanel() {
+  const { data: rawProfile, loading, refetch } = useApi<PaginatedResponse<any>>(
+    API.schools.profiles
+  );
+  
+  const existingProfile = rawProfile?.results?.[0] ?? null;
+
+  const { data: schoolMeta } = useApi<any>(
+    !existingProfile ? API.schools.me : null
+  );
+
+  const [profile, setProfile] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  // 1. Sync from existing profile (Main Source)
+  useEffect(() => {
+    if (existingProfile) {
+      setProfile(existingProfile);
+    }
+  }, [existingProfile]);
+
+  // 2. Fallback: Sync from school metadata if profile doesn't exist (Identity/Admin source)
+  useEffect(() => {
+    if (!existingProfile && schoolMeta) {
+      setProfile((prev: any) => ({
+        ...prev,
+        ...schoolMeta,
+        // Ensure academic year is defaulted
+        academic_year: prev.academic_year || "2025-2026"
+      }));
+    }
+  }, [existingProfile, schoolMeta]);
+
+  const showMessage = (text: string, type: "success" | "error") => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 4000);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const isUpdate = !!existingProfile;
+    const url = isUpdate ? `${API.schools.profiles}${existingProfile.id}/` : API.schools.profiles;
+    const method = isUpdate ? "PATCH" : "POST";
+
+    // Set default academic year if not present
+    const payload = { 
+      ...profile, 
+      academic_year: profile.academic_year || "2025-2026" 
+    };
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        showMessage("Profile updated successfully!", "success");
+        refetch();
+      } else {
+        const err = await res.json();
+        const msg = Object.values(err)[0] as string | string[];
+        showMessage(Array.isArray(msg) ? msg[0] : (typeof msg === 'string' ? msg : "Failed to save profile"), "error");
+      }
+    } catch {
+      showMessage("Network error. Please try again.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-[#23251d]">School Profile & Data</h2>
+          <p className="text-sm text-[#4d4f46]">
+            Manage your school's demographic and structural data. Accuracy is crucial for the ML analysis.
+          </p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 bg-[#F54E00] text-white px-6 py-2.5 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#F54E00]/20 disabled:opacity-50 disabled:hover:scale-100"
+        >
+          {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {existingProfile ? "Save Changes" : "Initialize Profile"}
+        </button>
+      </div>
+
+      {message && (
+        <div className={`px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${
+          message.type === "success"
+            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+            : "bg-red-50 text-red-700 border border-red-200"
+        }`}>
+          {message.type === "success"
+            ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+            : <AlertCircle className="w-4 h-4 shrink-0" />}
+          {message.text}
+        </div>
+      )}
+
+      <div className="bg-[#eeefe9] border border-[#b6b7af] rounded-2xl p-8 space-y-10 shadow-sm">
+        {/* School Identity & Admin */}
+        <div>
+          <h3 className="text-sm font-black text-[#23251d] mb-6 uppercase tracking-wider flex items-center gap-2">
+            <Building className="w-4 h-4 text-[#F54E00]" /> School Identity & Administrative
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Full School Name</label>
+              <input
+                type="text"
+                value={profile.name ?? ""}
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] font-bold"
+                placeholder="e.g. Govt. Model Sr. Sec. School"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Government UDISE Code</label>
+              <input
+                type="text"
+                value={profile.udise_code ?? ""}
+                onChange={(e) => setProfile({ ...profile, udise_code: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] font-mono"
+                placeholder="240XXXXXXXXXXXXXXXX"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">District</label>
+              <input
+                type="text"
+                value={profile.district ?? ""}
+                onChange={(e) => setProfile({ ...profile, district: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Block / Tehsil</label>
+              <input
+                type="text"
+                value={profile.block ?? ""}
+                onChange={(e) => setProfile({ ...profile, block: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Cluster</label>
+              <input
+                type="text"
+                value={profile.cluster ?? ""}
+                onChange={(e) => setProfile({ ...profile, cluster: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Pincode</label>
+              <input
+                type="text"
+                value={profile.pincode ?? ""}
+                onChange={(e) => setProfile({ ...profile, pincode: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Location & Geographic */}
+        <div className="pt-8 border-t border-[#b6b7af]/40">
+          <h3 className="text-sm font-black text-[#23251d] mb-6 uppercase tracking-wider">Location & Geographic Data</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Full Physical Address</label>
+              <textarea
+                rows={4}
+                value={profile.address ?? ""}
+                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                className="w-full bg-white border border-[#b6b7af] rounded-xl p-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00]"
+              />
+            </div>
+            <div className="space-y-6">
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={profile.latitude ?? ""}
+                  onChange={(e) => setProfile({ ...profile, latitude: e.target.value })}
+                  className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-bold text-[#4d4f46] pl-1">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={profile.longitude ?? ""}
+                  onChange={(e) => setProfile({ ...profile, longitude: e.target.value })}
+                  className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Academic Context */}
+        <div className="pt-8 border-t border-[#b6b7af]/40">
+          <h3 className="text-sm font-black text-[#23251d] mb-6 uppercase tracking-wider">Academic Lifecycle</h3>
+          <div className="max-w-xs space-y-1.5">
+            <label className="block text-[13px] font-black text-[#9ea096] uppercase tracking-widest pl-1">
+              Active Academic Year
+            </label>
+            <input
+              type="text"
+              value={profile.academic_year || "2025-2026"}
+              onChange={(e) => setProfile({ ...profile, academic_year: e.target.value })}
+              className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] font-black tracking-widest"
+              placeholder="e.g. 2025-2026"
+            />
+          </div>
+        </div>
+
+        {/* Demographics Block */}
+        <div className="pt-6 border-t border-[#b6b7af]/40">
+          <h3 className="text-sm font-black text-[#23251d] mb-4 uppercase tracking-wider">Student Demographics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Total Enrolled Students</label>
+              <input
+                type="number"
+                value={profile.total_students ?? ""}
+                onChange={(e) => setProfile({ ...profile, total_students: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Total Boys</label>
+              <input
+                type="number"
+                value={profile.total_boys ?? ""}
+                onChange={(e) => setProfile({ ...profile, total_boys: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Total Girls</label>
+              <input
+                type="number"
+                value={profile.total_girls ?? ""}
+                onChange={(e) => setProfile({ ...profile, total_girls: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Staff & Rooms Block */}
+        <div className="pt-6 border-t border-[#b6b7af]/40">
+          <h3 className="text-sm font-black text-[#23251d] mb-4 uppercase tracking-wider">Staff & Infrastructure</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Teaching Staff</label>
+              <input
+                type="number"
+                value={profile.teachers_count ?? ""}
+                onChange={(e) => setProfile({ ...profile, teachers_count: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00]"
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Non-Teaching Staff</label>
+              <input
+                type="number"
+                value={profile.non_teaching_staff_count ?? ""}
+                onChange={(e) => setProfile({ ...profile, non_teaching_staff_count: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00]"
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Total Classrooms</label>
+              <input
+                type="number"
+                value={profile.classrooms_count ?? ""}
+                onChange={(e) => setProfile({ ...profile, classrooms_count: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00]"
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Functional Rooms</label>
+              <input
+                type="number"
+                value={profile.functional_classrooms ?? ""}
+                onChange={(e) => setProfile({ ...profile, functional_classrooms: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00]"
+              />
+            </div>
+          </div>
+        </div>
+
+
+
+        {/* Structural & ML Metadata */}
+        <div className="pt-6 border-t border-[#b6b7af]/40">
+          <h3 className="text-sm font-black text-[#23251d] mb-4 uppercase tracking-wider">Structural & ML Metadata</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">School Type</label>
+              <select
+                value={profile.school_type ?? "PRIMARY"}
+                onChange={(e) => setProfile({ ...profile, school_type: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              >
+                <option value="PRIMARY">Primary</option>
+                <option value="SECONDARY">Secondary</option>
+                <option value="HIGHER_SECONDARY">Higher Secondary</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Weather Zone</label>
+              <select
+                value={profile.weather_zone ?? "Dry"}
+                onChange={(e) => setProfile({ ...profile, weather_zone: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              >
+                <option value="Coastal">Coastal</option>
+                <option value="Dry">Dry</option>
+                <option value="Heavy Rain">Heavy Rain</option>
+                <option value="Tribal">Tribal</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Material Type</label>
+              <select
+                value={profile.material_type ?? "RCC"}
+                onChange={(e) => setProfile({ ...profile, material_type: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              >
+                <option value="Brick">Brick</option>
+                <option value="Mixed">Mixed</option>
+                <option value="RCC">RCC</option>
+                <option value="Temporary">Temporary</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Building Age (Years)</label>
+              <input
+                type="number"
+                value={profile.building_age ?? 5}
+                onChange={(e) => setProfile({ ...profile, building_age: +e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              />
+            </div>
+            <label className="flex items-center gap-3 pt-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profile.is_girls_school ?? false}
+                onChange={(e) => setProfile({ ...profile, is_girls_school: e.target.checked })}
+                className="w-5 h-5 rounded border-[#b6b7af] text-[#F54E00] focus:ring-[#F54E00]"
+              />
+              <span className="text-sm font-bold text-[#23251d]">Girls School Only</span>
+            </label>
+            <label className="flex items-center gap-3 pt-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profile.flood_prone_area ?? false}
+                onChange={(e) => setProfile({ ...profile, flood_prone_area: e.target.checked })}
+                className="w-5 h-5 rounded border-[#b6b7af] text-[#F54E00] focus:ring-[#F54E00]"
+              />
+              <span className="text-sm font-bold text-[#23251d]">Flood Prone Zone</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Utilities & Services */}
+        <div className="pt-6 border-t border-[#b6b7af]/40">
+          <h3 className="text-sm font-black text-[#23251d] mb-4 uppercase tracking-wider">Utilities & Services</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <label className="block text-[13px] font-bold text-[#4d4f46] mb-1.5">Area Type</label>
+              <select
+                value={profile.area_type ?? "RURAL"}
+                onChange={(e) => setProfile({ ...profile, area_type: e.target.value })}
+                className="w-full h-11 bg-white border border-[#b6b7af] rounded-xl px-4 focus:border-[#F54E00]"
+              >
+                <option value="RURAL">Rural</option>
+                <option value="URBAN">Urban</option>
+                <option value="SEMI_URBAN">Semi-Urban</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-3 pt-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profile.electricity_available ?? false}
+                onChange={(e) => setProfile({ ...profile, electricity_available: e.target.checked })}
+                className="w-5 h-5 rounded border-[#b6b7af] text-[#F54E00] focus:ring-[#F54E00]"
+              />
+              <span className="text-sm font-bold text-[#23251d]">Grid Electricity</span>
+            </label>
+            <label className="flex items-center gap-3 pt-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profile.drinking_water_available ?? false}
+                onChange={(e) => setProfile({ ...profile, drinking_water_available: e.target.checked })}
+                className="w-5 h-5 rounded border-[#b6b7af] text-[#F54E00] focus:ring-[#F54E00]"
+              />
+              <span className="text-sm font-bold text-[#23251d]">Drinking Water</span>
+            </label>
+            <label className="flex items-center gap-3 pt-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profile.internet_available ?? false}
+                onChange={(e) => setProfile({ ...profile, internet_available: e.target.checked })}
+                className="w-5 h-5 rounded border-[#b6b7af] text-[#F54E00] focus:ring-[#F54E00]"
+              />
+              <span className="text-sm font-bold text-[#23251d]">Internet Ready</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "staff";
+type Tab = "overview" | "staff" | "data";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "staff", label: "Staff Management" },
+  { id: "data", label: "School Profile" },
 ];
 
 export default function SchoolDashboard() {
@@ -465,6 +909,7 @@ export default function SchoolDashboard() {
 
       {activeTab === "overview" && <OverviewPanel />}
       {activeTab === "staff" && <StaffPanel />}
+      {activeTab === "data" && <DataPanel />}
     </div>
   );
 }

@@ -8,13 +8,20 @@ export const API = {
 
   schools: {
     list: "/api/v1/schools/",
+    profiles: "/api/v1/schools/profiles/",
     export: "/api/v1/schools/export/",
     registrationRequests: "/api/v1/schools/registration-requests/",
+    me: "/api/v1/schools/me/",
   },
 
   reports: {
     list: "/api/v1/reports/weekly-reports/",
     export: "/api/v1/reports/weekly-reports/export/",
+    submit: (id: string | number) => `/api/v1/reports/weekly-reports/${id}/submit/`,
+    plumbing: "/api/v1/reports/plumbing-reports/",
+    electrical: "/api/v1/reports/electrical-reports/",
+    structural: "/api/v1/reports/structural-reports/",
+    issues: "/api/v1/reports/issues/",
   },
 
   predictions: {
@@ -25,6 +32,8 @@ export const API = {
   contracts: {
     list: "/api/v1/contracts/",
     bids: "/api/v1/contracts/bids/",
+    progress: "/api/v1/contracts/progress/",
+    proofs: "/api/v1/contracts/proofs/",
     export: "/api/v1/contracts/export/",
   },
 

@@ -43,7 +43,7 @@ export default function StaffManagement() {
       const res = await fetch("/api/v1/accounts/profiles/staff/");
       if (res.ok) {
         const data = await res.json();
-        setStaff(data);
+        setStaff(data.results ?? data);
       }
     } catch (err) {
       console.error("Failed to fetch staff", err);
