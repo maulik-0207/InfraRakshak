@@ -38,7 +38,7 @@ from apps.contracts.models import (
     WorkProof,
 )
 from apps.contracts.services import ContractLifecycleService
-from common.export import export_queryset_to_excel
+from common.export import export_queryset_to_csv as export_queryset_to_excel
 
 User = settings.AUTH_USER_MODEL
 
@@ -119,7 +119,7 @@ class ContractViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "estimated_cost", "priority_level"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
 
-    @extend_schema(summary="Export contracts to Excel", tags=["Contracts"])
+    @extend_schema(summary="Export contracts to CSV", tags=["Contracts"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
         queryset = self.filter_queryset(self.get_queryset())

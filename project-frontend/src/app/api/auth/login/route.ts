@@ -45,11 +45,21 @@ export async function POST(req: NextRequest) {
   const access = data.access;
   const refresh = data.refresh;
 
-  const res = NextResponse.json({ 
+  // Build a user object from the flat JWT response.
+  // The backend serializer returns `email` and `role` at the top level, not nested.
+  const userPayload = {
+    id: 0,                          // not provided by the token endpoint
+    email: data.email ?? "",
+    username: data.email ?? "",     // use email as username fallback
+    role: data.role ?? "",
+  };
+
+  const res = NextResponse.json({
     success: true,
+    access: access,                 // ← required by login page for setAuth()
     role: data.role,
-    user: data.user,
-    redirect_url: data.redirect_url
+    user: userPayload,
+    redirect_url: data.redirect_url,
   });
 
   // Set HttpOnly cookies with explicit sameSite for local compatibility

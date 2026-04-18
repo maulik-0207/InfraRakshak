@@ -20,7 +20,7 @@ from apps.reports.api.v1.serializers import (
     WeeklyStructuralReportSerializer,
 )
 from apps.reports.services import ReportCycleService
-from common.export import export_queryset_to_excel
+from common.export import export_queryset_to_csv as export_queryset_to_excel
 from apps.reports.models import (
     WeeklyElectricalReport,
     WeeklyIssues,
@@ -95,7 +95,7 @@ class WeeklyReportViewSet(viewsets.ModelViewSet):
     ordering_fields = ["week_start_date", "created_at", "status"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
-    @extend_schema(summary="Export reports to Excel", tags=["Reports"])
+    @extend_schema(summary="Export reports to CSV", tags=["Reports"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
         queryset = self.filter_queryset(self.get_queryset())

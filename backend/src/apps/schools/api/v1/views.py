@@ -18,7 +18,7 @@ from apps.schools.api.v1.serializers import (
 )
 from apps.schools.models import School, SchoolInfrastructure, SchoolProfile, SchoolRegistrationRequest
 from apps.schools.services import SchoolWorkflowService
-from common.export import export_queryset_to_excel
+from common.export import export_queryset_to_csv as export_queryset_to_excel
 
 
 @extend_schema_view(
@@ -78,7 +78,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
             school_data=serializer.validated_data
         )
 
-    @extend_schema(summary="Export schools to Excel", tags=["Schools"])
+    @extend_schema(summary="Export schools to CSV", tags=["Schools"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
         queryset = self.filter_queryset(self.get_queryset())

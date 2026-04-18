@@ -211,7 +211,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             User.Role.DEO: "/deo/dashboard",
             User.Role.CONTRACTOR: "/contractor/dashboard",
             User.Role.ADMIN_STAFF: "/deo/dashboard",
-            User.Role.STAFF: "/school/dashboard",
+            User.Role.STAFF: "/staff/dashboard",
         }
         data['redirect_url'] = redirects.get(user.role, "/dashboard")
             

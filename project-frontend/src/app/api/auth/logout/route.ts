@@ -9,5 +9,6 @@ export async function POST() {
   // Clear cookies by setting maxAge=0
   res.cookies.set('access_token', '', { httpOnly: true, path: '/', maxAge: 0 });
   res.cookies.set('refresh_token', '', { httpOnly: true, path: '/', maxAge: 0 });
+  res.cookies.set('user_role', '', { httpOnly: true, path: '/', maxAge: 0 });
   return res;
 }

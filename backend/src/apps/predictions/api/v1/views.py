@@ -5,7 +5,7 @@ Predictions API v1 views.
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
-from common.export import export_queryset_to_excel
+from common.export import export_queryset_to_csv as export_queryset_to_excel
 from common.permissions import (
     IsSchool, IsDEO, IsAdminStaff, IsSchoolStaff,
     IsDEOOrAdminStaff, IsSchoolOrStaff
@@ -63,7 +63,7 @@ class PredictionReportViewSet(viewsets.ModelViewSet):
     ordering_fields = ["priority_rank", "overall_score", "generated_at"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
-    @extend_schema(summary="Export predictions to Excel", tags=["Predictions"])
+    @extend_schema(summary="Export predictions to CSV", tags=["Predictions"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
         queryset = self.filter_queryset(self.get_queryset())
@@ -129,7 +129,7 @@ class DistrictReportViewSet(viewsets.ModelViewSet):
     ordering_fields = ["week_start_date", "avg_score", "high_risk_schools"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
-    @extend_schema(summary="Export district reports to Excel", tags=["Predictions"])
+    @extend_schema(summary="Export district reports to CSV", tags=["Predictions"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
         queryset = self.filter_queryset(self.get_queryset())

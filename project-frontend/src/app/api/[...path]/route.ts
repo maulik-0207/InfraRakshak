@@ -9,7 +9,7 @@ import { cookies } from "next/headers";
 
 // Pull configuration from .env.local (Fallback to local loopback for safety)
 // DO NOT append /v1 here as it causes proxy path duplication
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://192.168.1.29:8000/api";
+const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:8000/api";
 
 const FETCH_TIMEOUT_MS = 5000;
 
