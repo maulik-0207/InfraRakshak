@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
-import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 // Mock Account Database
@@ -64,11 +65,16 @@ export default function LoginPage() {
       
       {/* Header Area */}
       <header className="absolute top-0 w-full flex items-center justify-between p-6">
-        <div className="flex items-center gap-2 group cursor-pointer">
-           <div className="h-8 w-8 bg-[#F54E00] rounded-[4px] flex items-center justify-center p-1.5 transition-transform group-hover:scale-105">
-             <ShieldCheck className="text-white w-full h-full" />
-           </div>
-           <span className="font-bold text-xl tracking-tight text-[#23251d]">InfraRakshak</span>
+        <div className="flex items-center group cursor-pointer">
+          <Image
+            src="/logo.png"
+            alt="InfraRakshak Logo"
+            width={160}
+            height={60}
+            style={{ height: "auto" }}
+            className="object-contain transition-transform group-hover:scale-105"
+            priority
+          />
         </div>
       </header>
 
