@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, Search, Settings, ShieldCheck, ClipboardCheck } from "lucide-react"
+import { Calendar, Home, Inbox, Search, Settings, ShieldCheck, ClipboardCheck, User, LogOut, Gavel } from "lucide-react"
 
 import {
   Sidebar,
@@ -13,51 +13,85 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuthStore } from "@/store/auth-store"
-
-const navItems = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Reports", url: "/reports", icon: Inbox },
-  { title: "Contracts", url: "/contracts", icon: ClipboardCheck },
-]
+import { useRouter, usePathname } from "next/navigation"
 
 export function AppSidebar() {
-  const { role, user } = useAuthStore()
+  const { role, user, logout } = useAuthStore()
+  const router = useRouter()
+  const pathname = usePathname()
 
-  // Items are identical structurally now, data filters dynamically downstream on the pages.
-  let items = navItems;
+  const handleLogout = () => {
+    // Clear cookies
+    document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    logout();
+    router.push("/login");
+  }
+
+  const navItems = [
+    { title: "Dashboard", url: "/dashboard", icon: Home },
+    ...(role === "CONTRACTOR" 
+      ? [{ title: "My Bids", url: "/my-contracts", icon: Gavel }] 
+      : [{ title: "Reports", url: "/reports", icon: Inbox }]),
+    { title: "Contracts", url: "/contracts", icon: ClipboardCheck },
+    { title: "Settings", url: "/settings", icon: Settings },
+  ]
 
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex items-center justify-between p-4 pb-2">
-            <SidebarGroupLabel className="text-lg font-bold text-[#23251d]">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <SidebarGroupLabel className="text-xl font-bold text-[#23251d]">
               Infra<span className="text-[#F54E00]">Rakshak</span>
             </SidebarGroupLabel>
           </div>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title} className="px-2">
-                  <SidebarMenuButton 
-                    render={<a href={item.url} />}
-                    className="hover:text-[#F54E00] hover:bg-[#eeefe9] rounded-[4px] px-2 transition-all group"
-                  >
-                     <item.icon className="text-[#4d4f46] group-hover:text-[#F54E00] transition-colors" />
-                     <span className="font-semibold">{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="gap-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.url
+                return (
+                  <SidebarMenuItem key={item.title} className="px-4">
+                    <SidebarMenuButton 
+                      isActive={isActive}
+                      render={<a href={item.url} />}
+                      className={`h-11 px-3 transition-all group flex items-center gap-3 rounded-[6px] 
+                        ${isActive 
+                          ? "bg-[#F54E00] text-white shadow-[0_2px_0_0_#b17816]" 
+                          : "hover:text-[#F54E00] hover:bg-[#eeefe9] text-[#4d4f46]"
+                        }`}
+                    >
+                       <item.icon className={`shrink-0 transition-colors ${isActive ? "text-white" : "text-[#4d4f46] group-hover:text-[#F54E00]"}`} />
+                       <span className={`font-bold tracking-tight ${isActive ? "text-white" : ""}`}>
+                         {item.title}
+                       </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-[#bfc1b7]">
-         <div className="p-4 text-sm text-[#4d4f46] flex flex-col gap-1 w-full truncate bg-[#eeefe9]/50">
-            <span className="font-bold text-[#23251d]">{user?.first_name} {user?.last_name}</span>
-            <span className="text-xs uppercase tracking-wider text-[#F54E00] font-bold">{role}</span>
+      <SidebarFooter className="border-t border-[#bfc1b7] p-4">
+         <div className="p-4 text-sm text-[#4d4f46] flex flex-col gap-4 w-full bg-[#eeefe9]/50 rounded-lg">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded bg-[#1e1f23] flex items-center justify-center text-white shrink-0">
+                <User size={20} />
+              </div>
+              <div className="flex flex-col truncate">
+                <span className="font-bold text-[#23251d] truncate">{user?.first_name} {user?.last_name}</span>
+                <span className="text-[10px] uppercase tracking-wider text-[#F54E00] font-bold">{role}</span>
+              </div>
+            </div>
+            
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs font-bold text-[#4d4f46] hover:text-[#F54E00] hover:bg-[#fdfdf8] rounded border border-[#bfc1b7] transition-all group"
+            >
+              <LogOut size={14} className="group-hover:text-[#F54E00]" />
+              Sign Out
+            </button>
          </div>
       </SidebarFooter>
     </Sidebar>
