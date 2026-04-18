@@ -42,8 +42,8 @@
   --popover: #fdfdf8;
   --popover-foreground: #4d4f46;
   
-  /* Buttons */
-  --primary: #1e1f23;
+  /* Buttons & Accents */
+  --primary: #F54E00;
   --primary-foreground: #ffffff;
   --secondary: #e5e7e0;
   --secondary-foreground: #4d4f46;
@@ -58,7 +58,7 @@
   /* Borders */
   --border: #bfc1b7;
   --input: #b6b7af;
-  --ring: #3b82f6;
+  --ring: #F54E00;
   
   --radius: 4px;
 }

@@ -42,7 +42,7 @@ export default function LoginPage() {
       {/* Header Area */}
       <header className="absolute top-0 w-full flex items-center justify-between p-6">
         <div className="flex items-center gap-2 group cursor-pointer">
-           <div className="h-8 w-8 bg-[#1e1f23] rounded-[4px] flex items-center justify-center p-1.5 transition-transform group-hover:scale-105">
+           <div className="h-8 w-8 bg-[#F54E00] rounded-[4px] flex items-center justify-center p-1.5 transition-transform group-hover:scale-105">
              <ShieldCheck className="text-white w-full h-full" />
            </div>
            <span className="font-bold text-xl tracking-tight text-[#23251d]">InfraRakshak</span>
@@ -57,7 +57,7 @@ export default function LoginPage() {
           
           <div className="mb-8">
             <h1 className="text-4xl font-extrabold tracking-tight leading-[1.20] text-[#23251d] mb-4">
-              Sign in to InfraRakshak
+              Sign in to <span className="text-[#F54E00]">InfraRakshak</span>
             </h1>
             <p className="text-[16px] text-[#4d4f46] leading-[1.50]">
               Securely monitor and protect external infrastructure operations across your district.
@@ -75,7 +75,7 @@ export default function LoginPage() {
                   required 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 bg-[#eeefe9] border border-[#b6b7af] rounded-[4px] px-4 focus-visible:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] text-[#374151] placeholder:text-[#9ea096] transition-colors"
+                  className="w-full h-12 bg-[#eeefe9] border border-[#b6b7af] rounded-[4px] px-4 focus-visible:outline-none focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] text-[#374151] placeholder:text-[#9ea096] transition-colors"
                 />
               </div>
             </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-[15px] font-semibold text-[#23251d]">Password</label>
-                <Link href="#" className="text-[14px] text-[#4d4f46] hover:text-[#F54E00] font-semibold transition-colors">Forgot password?</Link>
+                <Link href="#" className="text-[14px] text-[#F54E00] hover:text-[#F7A501] font-semibold transition-colors">Forgot password?</Link>
               </div>
               <div className="relative group">
                 <input 
@@ -92,7 +92,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 bg-[#eeefe9] border border-[#b6b7af] rounded-[4px] pl-4 pr-12 focus-visible:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] text-[#374151] placeholder:text-[#9ea096] font-medium transition-colors"
+                  className="w-full h-12 bg-[#eeefe9] border border-[#b6b7af] rounded-[4px] pl-4 pr-12 focus-visible:outline-none focus:border-[#F54E00] focus:ring-1 focus:ring-[#F54E00] text-[#374151] placeholder:text-[#9ea096] font-medium transition-colors"
                  />
                  <button 
                   type="button" 
@@ -108,7 +108,7 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full h-12 bg-[#1e1f23] text-white hover:text-[#F7A501] hover:bg-opacity-90 active:scale-[0.98] text-[15px] font-semibold rounded-[6px] mt-2 transition-all flex items-center justify-center disabled:opacity-70 disabled:pointer-events-none" 
+              className="w-full h-12 bg-[#F54E00] text-white hover:bg-[#F54E00]/70 active:scale-[0.98] text-[15px] font-semibold rounded-[6px] mt-2 shadow-[0_2px_0_0_#b17816] transition-all flex items-center justify-center disabled:opacity-70 disabled:pointer-events-none" 
             >
               {isLoading ? "Authenticating..." : "Sign in"}
             </button>
@@ -116,7 +116,7 @@ export default function LoginPage() {
           
           <div className="mt-8 pt-8 border-t border-[#bfc1b7] text-center">
             <p className="text-[15px] text-[#4d4f46] mb-4">Are you a new district administrator?</p>
-            <Link href="/register" className="inline-flex items-center justify-center h-10 px-6 bg-[#e5e7e0] text-[#4d4f46] hover:bg-[#f4f4f4] hover:text-[#F54E00] text-[15px] font-semibold rounded-[4px] transition-colors">
+            <Link href="/register" className="inline-flex items-center justify-center h-10 px-6 bg-[#1e1f23] text-white hover:bg-opacity-90 hover:text-[#F7A501] text-[15px] font-semibold rounded-[4px] transition-colors">
               Create a new account
             </Link>
           </div>
