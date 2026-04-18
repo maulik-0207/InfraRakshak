@@ -6,18 +6,18 @@ export default function ReportsPage() {
   const { role } = useAuthStore();
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full px-6 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          {role === "PRINCIPAL" ? "My Reports" : "District Reports"}
+        <h1 className="text-4xl font-extrabold tracking-tight text-[#23251d]">
+          {role === "PRINCIPAL" ? "My " : "District "}<span className="text-[#F54E00]">Reports</span>
         </h1>
       </div>
       
-      <div className="p-6 bg-card border border-border rounded-xl shadow-sm">
-         <p className="text-muted-foreground text-sm">
+      <div className="p-8 bg-card border border-[#bfc1b7] rounded-lg shadow-sm">
+         <p className="text-[#4d4f46] text-sm leading-relaxed max-w-2xl">
             {role === "PRINCIPAL" 
-             ? "Submit new infrastructure reports or view the status of existing applications."
-             : "Browse infrastructure discrepancy reports submitted across the district."}
+             ? "Submit new infrastructure reports or view the status of existing applications. Our system ensures your reports are prioritized for review."
+             : "Browse infrastructure discrepancy reports submitted across the district. Filter by priority or category to manage district-wide repairs."}
          </p>
       </div>
     </div>
