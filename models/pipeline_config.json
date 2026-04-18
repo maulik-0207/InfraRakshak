@@ -1,0 +1,40 @@
+{
+  "pipeline": "InfraRakshak Predictive Maintenance",
+  "version": "1.0.0",
+  "models": {
+    "plumbing": {
+      "path": "models/plumbing_model.pkl",
+      "type": "RandomForest",
+      "target": "failure_within_30_days"
+    },
+    "electrical": {
+      "path": "models/electrical_model.pkl",
+      "type": "RandomForest",
+      "target": "failure_within_30_days"
+    },
+    "structural": {
+      "path": "models/structural_model.pkl",
+      "type": "RandomForest",
+      "target": "structural_severity"
+    }
+  },
+  "priority_logic": {
+    "risk_weights": {
+      "Low": 1,
+      "Medium": 2,
+      "High": 3
+    },
+    "impact_weights": {
+      "girls_toilet": 3,
+      "classroom": 2,
+      "storage": 1
+    },
+    "urgency_formula": "60 - days_to_failure",
+    "thresholds": {
+      "Critical": 75,
+      "High": 50,
+      "Medium": 25,
+      "Low": 0
+    }
+  }
+}
