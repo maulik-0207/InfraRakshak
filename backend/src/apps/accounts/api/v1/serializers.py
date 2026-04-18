@@ -1,205 +1,206 @@
 """
-Accounts API v1 serializers.
-
-Provides serializers for User, Role, and all profile models,
-along with authentication (register / login) serializers.
+Accounts API v1 serializers — Refactored for Email login & New Profiles.
 """
 
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from apps.accounts.models import AdminStaff, Contractor, DEO, Principal, Role, SchoolStaff
-from apps.accounts.services import AuthService
+from apps.accounts.models import (
+    SchoolAccountProfile, DEOProfile, ContractorProfile, 
+    AdminStaffProfile, StaffProfile
+)
 
 User = get_user_model()
 
 
 # ===========================================================================
-# Role
-# ===========================================================================
-
-class RoleSerializer(serializers.ModelSerializer):
-    """Read/write serializer for the Role lookup table."""
-
-    class Meta:
-        model = Role
-        fields = ["id", "name", "description", "created_at"]
-        read_only_fields = ["id", "created_at"]
-
-
-# ===========================================================================
-# User
+# User Serializers (Email-based)
 # ===========================================================================
 
 class UserListSerializer(serializers.ModelSerializer):
-    """Lightweight user representation for list views and nested FK fields."""
-
-    role_name = serializers.CharField(source="role.name", read_only=True, default=None)
+    """Lightweight user representation."""
 
     class Meta:
         model = User
         fields = [
-            "id", "username", "email", "first_name", "last_name",
-            "phone_no", "role", "role_name", "is_verified", "is_active",
-            "date_joined",
+            "id", "email", "role", "is_verified", "is_active", "date_joined",
         ]
         read_only_fields = ["id", "date_joined"]
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    """Full user representation for detail / update views."""
-
-    role_name = serializers.CharField(source="role.name", read_only=True, default=None)
+    """Full user representation."""
 
     class Meta:
         model = User
         fields = [
-            "id", "username", "email", "first_name", "last_name",
-            "phone_no", "role", "role_name", "is_verified", "is_active",
+            "id", "email", "role", "is_verified", "is_active", 
             "is_staff", "date_joined", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "date_joined", "created_at", "updated_at"]
-
-
-class UserRegisterSerializer(serializers.ModelSerializer):
-    """
-    Registration serializer.
-
-    Accepts password + password_confirm; creates user with hashed password.
-    """
-
-    password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-        style={"input_type": "password"},
-        help_text="Minimum 8 characters.",
-    )
-    password_confirm = serializers.CharField(
-        write_only=True,
-        style={"input_type": "password"},
-        help_text="Must match password.",
-    )
-
-    class Meta:
-        model = User
-        fields = [
-            "id", "username", "email", "first_name", "last_name",
-            "phone_no", "role", "password", "password_confirm",
-        ]
-        read_only_fields = ["id"]
-
-    def validate(self, attrs: dict) -> dict:
-        if attrs["password"] != attrs.pop("password_confirm"):
-            raise serializers.ValidationError(
-                {"password_confirm": "Passwords do not match."}
-            )
-        return attrs
-
-    def create(self, validated_data: dict) -> User:
-        return AuthService.register_user(validated_data)
 
 
 # ===========================================================================
 # Profile Serializers
 # ===========================================================================
 
-class PrincipalSerializer(serializers.ModelSerializer):
-    """Serializer for Principal profile — linked to a User and School."""
-
-    user_detail = UserListSerializer(source="user", read_only=True)
-
-    class Meta:
-        model = Principal
-        fields = [
-            "id", "user", "user_detail", "school",
-            "joining_date", "qualification", "experience_years",
-            "created_at", "updated_at",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
-
-
-class SchoolStaffSerializer(serializers.ModelSerializer):
-    """Serializer for SchoolStaff profile."""
-
-    user_detail = UserListSerializer(source="user", read_only=True)
+class SchoolAccountProfileSerializer(serializers.ModelSerializer):
+    """Serializer for School Account profile."""
+    
+    email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
-        model = SchoolStaff
+        model = SchoolAccountProfile
         fields = [
-            "id", "user", "user_detail", "school", "designation",
-            "created_at", "updated_at",
+            "id", "user", "email", "school_id", "school_name", 
+            "phone_no", "district", "address", "school_type",
+            "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
 
 
-class ContractorSerializer(serializers.ModelSerializer):
-    """Serializer for Contractor profile."""
-
-    user_detail = UserListSerializer(source="user", read_only=True)
-    specialization_display = serializers.CharField(
-        source="get_specialization_display", read_only=True,
-    )
-
-    class Meta:
-        model = Contractor
-        fields = [
-            "id", "user", "user_detail", "company_name", "license_number",
-            "specialization", "specialization_display", "experience_years",
-            "rating", "is_available", "created_at", "updated_at",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
-
-
-class DEOSerializer(serializers.ModelSerializer):
+class DEOProfileSerializer(serializers.ModelSerializer):
     """Serializer for DEO profile."""
 
-    user_detail = UserListSerializer(source="user", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
-        model = DEO
+        model = DEOProfile
         fields = [
-            "id", "user", "user_detail", "district", "office_address",
-            "created_at", "updated_at",
+            "id", "user", "email", "district", "office_address",
+            "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
 
 
-class AdminStaffSerializer(serializers.ModelSerializer):
-    """Serializer for AdminStaff profile."""
+class ContractorProfileSerializer(serializers.ModelSerializer):
+    """Serializer for Contractor profile."""
 
-    user_detail = UserListSerializer(source="user", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
-        model = AdminStaff
+        model = ContractorProfile
         fields = [
-            "id", "user", "user_detail", "office_name", "designation",
-            "district", "created_at", "updated_at",
+            "id", "user", "email", "company_name", "license_number", 
+            "phone_no", "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
+
+
+class AdminStaffProfileSerializer(serializers.ModelSerializer):
+    """Serializer for Admin Staff profile."""
+
+    email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = AdminStaffProfile
+        fields = [
+            "id", "user", "email", "parent_deo", "full_name", 
+            "phone_no", "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
+
+
+class StaffProfileSerializer(serializers.ModelSerializer):
+    """Serializer for School Staff profile."""
+
+    email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = StaffProfile
+        fields = [
+            "id", "user", "email", "parent_school", "full_name", 
+            "phone_no", "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
+
+
+# ===========================================================================
+# Onboarding Serializers
+# ===========================================================================
+
+class SchoolRegistrationSerializer(serializers.Serializer):
+    """Serializer for School self-registration."""
+    
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    school_id = serializers.CharField()
+    school_name = serializers.CharField()
+    phone_no = serializers.CharField()
+    district = serializers.CharField()
+    address = serializers.CharField()
+    school_type = serializers.CharField()
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+
+class ContractorRegistrationSerializer(serializers.Serializer):
+    """Serializer for Contractor self-registration."""
+    
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    company_name = serializers.CharField()
+    license_number = serializers.CharField()
+    phone_no = serializers.CharField()
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+
+class BulkOnboardingSerializer(serializers.Serializer):
+    """Serializer for Excel file upload."""
+    
+    file = serializers.FileField()
+    role = serializers.ChoiceField(choices=[
+        User.Role.ADMIN_STAFF, 
+        User.Role.STAFF, 
+        User.Role.DEO
+    ])
+
 
 # ===========================================================================
 # Auth (JWT Customization)
 # ===========================================================================
 
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
-
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Overridden JWT serializer to enforce email verification.
+    Overridden JWT serializer to include role and dashboard redirects.
     """
 
     def validate(self, attrs):
+        # Base validation (handles email/password check)
         data = super().validate(attrs)
         
-        if not self.user.is_verified:
+        user = self.user
+        
+        if not user.is_verified:
             raise serializers.ValidationError(
-                {"detail": "Your email address is not verified. Please verify your email before logging in."}
+                {"detail": "Your email address is not verified."}
             )
         
-        if not self.user.is_active:
+        if not user.is_active:
             raise serializers.ValidationError(
-                {"detail": "Your account is inactive. Please contact administration."}
+                {"detail": "Your account is inactive."}
             )
+
+        # Add custom data
+        data['role'] = user.role
+        data['email'] = user.email
+        
+        # Dashboard Redirect Logic
+        redirects = {
+            User.Role.SCHOOL: "/school/dashboard",
+            User.Role.DEO: "/deo/dashboard",
+            User.Role.CONTRACTOR: "/contractor/dashboard",
+            User.Role.ADMIN_STAFF: "/deo/dashboard",
+            User.Role.STAFF: "/school/dashboard",
+        }
+        data['redirect_url'] = redirects.get(user.role, "/dashboard")
             
         return data

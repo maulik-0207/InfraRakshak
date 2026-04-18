@@ -1,82 +1,88 @@
 """
-Accounts app models.
-
-Contains the custom User model, Role model, and all role-specific
-profile models (Principal, SchoolStaff, Contractor, DEO, AdminStaff).
+Accounts app models — Refactored for Email-based Authentication.
 """
 
 import uuid
 from django.utils import timezone
-from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.core.validators import MinValueValidator
 
 from common.models import TimeStampedModel
 
 
 # ===========================================================================
-# Role
+# User Manager
 # ===========================================================================
 
-class Role(TimeStampedModel):
+class UserManager(BaseUserManager):
     """
-    Lookup table for user roles.
-
-    Replaces a hard-coded ENUM so new roles can be added at runtime
-    without requiring a migration.
+    Custom manager for Users where email is the unique identifier.
     """
 
-    name = models.CharField(max_length=50, unique=True, db_index=True)
-    description = models.TextField(blank=True, default="")
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("The Email field must be set")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
-    class Meta(TimeStampedModel.Meta):
-        verbose_name = "Role"
-        verbose_name_plural = "Roles"
-        ordering = ["name"]
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_verified', True)
 
-    def __str__(self) -> str:
-        return self.name
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(email, password, **extra_fields)
 
 
 # ===========================================================================
 # Custom User
 # ===========================================================================
 
-class User(AbstractUser):
+class User(AbstractBaseUser, PermissionsMixin):
     """
-    Custom user model extending Django's AbstractUser.
+    Core User model using Email instead of Username.
+    """
 
-    Adds phone_no, role FK, and is_verified flag.
-    email and username are indexed by default via AbstractUser;
-    we add explicit db_index on email for safety.
-    """
+    class Role(models.TextChoices):
+        SCHOOL = "SCHOOL", "School"
+        DEO = "DEO", "District Education Officer"
+        CONTRACTOR = "CONTRACTOR", "Contractor"
+        ADMIN_STAFF = "ADMIN_STAFF", "Admin Staff"
+        STAFF = "STAFF", "School Staff"
 
     email = models.EmailField(unique=True, db_index=True)
-    phone_no = models.CharField(max_length=15, blank=True, default="")
-    role = models.ForeignKey(
-        Role,
-        on_delete=models.PROTECT,
-        related_name="users",
-        null=True,
-        blank=True,
+    role = models.CharField(
+        max_length=15,
+        choices=Role.choices,
+        db_index=True
     )
     is_verified = models.BooleanField(default=False)
-
-    # Timestamps — AbstractUser already has date_joined / last_login;
-    # we add created_at / updated_at for consistency with other models.
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    
+    date_joined = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta(AbstractUser.Meta):
+    objects = UserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"
-        indexes = [
-            models.Index(fields=["email"], name="idx_user_email"),
-            models.Index(fields=["username"], name="idx_user_username"),
-        ]
 
     def __str__(self) -> str:
-        return f"{self.username} ({self.get_full_name() or self.email})"
+        return f"{self.email} ({self.role})"
 
 
 # ===========================================================================
@@ -84,158 +90,82 @@ class User(AbstractUser):
 # ===========================================================================
 
 class UserVerificationToken(TimeStampedModel):
-    """
-    Secure token for email verification.
-    """
-
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="verification_tokens",
-    )
+    """Secure token for email verification."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="verification_tokens")
     token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
-
-    class Meta(TimeStampedModel.Meta):
-        verbose_name = "Verification Token"
-        verbose_name_plural = "Verification Tokens"
-
-    def __str__(self) -> str:
-        return f"Token for {self.user.email} (Used: {self.is_used})"
 
     def is_expired(self) -> bool:
         return timezone.now() > self.expires_at
 
 
 # ===========================================================================
-# Profile Models
+# Role Profiles
 # ===========================================================================
 
-class Principal(TimeStampedModel):
-    """Profile for users with the PRINCIPAL role."""
-
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="principal_profile",
-    )
-    school = models.ForeignKey(
-        "schools.School",
-        on_delete=models.PROTECT,
-        related_name="principals",
-    )
-    joining_date = models.DateField(null=True, blank=True)
-    qualification = models.CharField(max_length=255, blank=True, default="")
-    experience_years = models.PositiveIntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-    )
-
-    class Meta(TimeStampedModel.Meta):
-        verbose_name = "Principal"
-        verbose_name_plural = "Principals"
+class SchoolAccountProfile(TimeStampedModel):
+    """
+    Profile for the School Account holder.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="school_profile")
+    school_id = models.CharField(max_length=50, unique=True, db_index=True)
+    school_name = models.CharField(max_length=255)
+    phone_no = models.CharField(max_length=15)
+    district = models.CharField(max_length=100)
+    address = models.TextField()
+    school_type = models.CharField(max_length=50)
 
     def __str__(self) -> str:
-        return f"Principal: {self.user.get_full_name()} @ {self.school}"
+        return f"{self.school_name} ({self.school_id})"
 
 
-class SchoolStaff(TimeStampedModel):
-    """Profile for users with the SCHOOL_STAFF role."""
-
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="school_staff_profile",
-    )
-    school = models.ForeignKey(
-        "schools.School",
-        on_delete=models.PROTECT,
-        related_name="staff_members",
-    )
-    designation = models.CharField(
-        max_length=100,
-        help_text="e.g., Clerk, Supervisor, Technician",
-    )
-
-    class Meta(TimeStampedModel.Meta):
-        verbose_name = "School Staff"
-        verbose_name_plural = "School Staff"
+class DEOProfile(TimeStampedModel):
+    """
+    Profile for the District Education Officer.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="deo_profile")
+    district = models.CharField(max_length=100, unique=True)
+    office_address = models.TextField()
 
     def __str__(self) -> str:
-        return f"{self.designation}: {self.user.get_full_name()}"
+        return f"DEO: {self.district}"
 
 
-class Contractor(TimeStampedModel):
-    """Profile for users with the CONTRACTOR role."""
-
-    class Specialization(models.TextChoices):
-        PLUMBING = "PLUMBING", "Plumbing"
-        ELECTRICAL = "ELECTRICAL", "Electrical"
-        STRUCTURAL = "STRUCTURAL", "Structural"
-        MULTI = "MULTI", "Multi-Discipline"
-
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="contractor_profile",
-    )
+class ContractorProfile(TimeStampedModel):
+    """
+    Profile for the Contractor (Registered by email).
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="contractor_profile")
     company_name = models.CharField(max_length=255)
-    license_number = models.CharField(max_length=100, unique=True, db_index=True)
-    specialization = models.CharField(
-        max_length=20,
-        choices=Specialization.choices,
-        default=Specialization.MULTI,
-    )
-    experience_years = models.PositiveIntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-    )
-    rating = models.FloatField(null=True, blank=True)
-    is_available = models.BooleanField(default=True)
-
-    class Meta(TimeStampedModel.Meta):
-        verbose_name = "Contractor"
-        verbose_name_plural = "Contractors"
+    license_number = models.CharField(max_length=100, unique=True)
+    phone_no = models.CharField(max_length=15)
 
     def __str__(self) -> str:
-        return f"{self.company_name} ({self.user.get_full_name()})"
+        return self.company_name
 
 
-class DEO(TimeStampedModel):
-    """Profile for users with the DEO (District Education Officer) role."""
-
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="deo_profile",
-    )
-    district = models.CharField(max_length=100, db_index=True)
-    office_address = models.TextField(blank=True, default="")
-
-    class Meta(TimeStampedModel.Meta):
-        verbose_name = "DEO"
-        verbose_name_plural = "DEOs"
+class AdminStaffProfile(TimeStampedModel):
+    """
+    Staff added by a DEO.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="admin_staff_profile")
+    parent_deo = models.ForeignKey(DEOProfile, on_delete=models.CASCADE, related_name="staff_members")
+    full_name = models.CharField(max_length=255)
+    phone_no = models.CharField(max_length=15)
 
     def __str__(self) -> str:
-        return f"DEO: {self.user.get_full_name()} ({self.district})"
+        return self.full_name
 
 
-class AdminStaff(TimeStampedModel):
-    """Profile for users with the ADMIN_STAFF role."""
-
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="admin_staff_profile",
-    )
-    office_name = models.CharField(max_length=255)
-    designation = models.CharField(max_length=100)
-    district = models.CharField(max_length=100, db_index=True)
-
-    class Meta(TimeStampedModel.Meta):
-        verbose_name = "Admin Staff"
-        verbose_name_plural = "Admin Staff"
+class StaffProfile(TimeStampedModel):
+    """
+    Staff added by a School Account.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="staff_profile")
+    parent_school = models.ForeignKey(SchoolAccountProfile, on_delete=models.CASCADE, related_name="staff_members")
+    full_name = models.CharField(max_length=255)
+    phone_no = models.CharField(max_length=15)
 
     def __str__(self) -> str:
-        return f"{self.designation}: {self.user.get_full_name()} ({self.district})"
+        return self.full_name

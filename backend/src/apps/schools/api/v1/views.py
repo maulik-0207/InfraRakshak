@@ -2,7 +2,7 @@
 Schools API v1 views.
 """
 
-from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
 
 from apps.schools.api.v1.serializers import (
@@ -20,6 +20,11 @@ from apps.schools.services import SchoolWorkflowService
         summary="List all schools",
         description="Returns a paginated list of schools. Filter by district, block, or type.",
         tags=["Schools"],
+        parameters=[
+            OpenApiParameter("district", type=str, description="Filter by district name"),
+            OpenApiParameter("block", type=str, description="Filter by block/tehsil"),
+            OpenApiParameter("school_type", type=str, description="Filter by type (PRIMARY, SECONDARY, etc.)"),
+        ]
     ),
     retrieve=extend_schema(summary="Get school details", tags=["Schools"]),
     create=extend_schema(
@@ -135,7 +140,13 @@ from rest_framework import status
 
 
 @extend_schema_view(
-    list=extend_schema(summary="List registration requests", tags=["Schools Workflow"]),
+    list=extend_schema(
+        summary="List registration requests", 
+        tags=["Schools Workflow"],
+        parameters=[
+            OpenApiParameter("status", type=str, description="Filter by status (PENDING, APPROVED, REJECTED)"),
+        ]
+    ),
     retrieve=extend_schema(summary="Get registration request details", tags=["Schools Workflow"]),
 )
 class SchoolRegistrationRequestViewSet(viewsets.ReadOnlyModelViewSet):

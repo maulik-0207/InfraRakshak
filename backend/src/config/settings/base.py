@@ -44,7 +44,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_
 # Application definition
 
 INSTALLED_APPS = [
-    'jazzmin',
+    # 'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -196,7 +196,7 @@ SPECTACULAR_SETTINGS = {
         "Pass the access token in the `Authorization` header:\n"
         "```\nAuthorization: Bearer <access_token>\n```"
     ),
-    "VERSION": "1.0.0",
+    "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": "/api/v1",
@@ -224,7 +224,7 @@ SPECTACULAR_SETTINGS = {
 from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -261,7 +261,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 # Celery Configuration Options
-CELERY_TIMEZONE = "UTC"
+CELERY_TIMEZONE = "Asia/Kolkata"
 CELERY_BROKER_URL =  "redis://127.0.0.1:6379"
 # django-celery-results
 CELERY_RESULT_BACKEND = 'django-db'

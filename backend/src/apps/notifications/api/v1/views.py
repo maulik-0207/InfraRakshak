@@ -16,6 +16,11 @@ from apps.notifications.models import Notification
         summary="List notifications",
         description="Returns paginated notifications for the authenticated user. Filter by type or read status.",
         tags=["Notifications"],
+        parameters=[
+            OpenApiParameter("user", type=int, description="Filter by User ID"),
+            OpenApiParameter("type", type=str, description="Filter by type (CONTRACT, SYSTEM, etc.)"),
+            OpenApiParameter("is_read", type=bool, description="Filter by read status"),
+        ]
     ),
     retrieve=extend_schema(summary="Get notification", tags=["Notifications"]),
     create=extend_schema(

@@ -44,6 +44,12 @@ User = settings.AUTH_USER_MODEL
         summary="List contracts",
         description="Paginated list of contracts. Filter by status, category, priority, or school.",
         tags=["Contracts"],
+        parameters=[
+            OpenApiParameter("school", type=int, description="Filter by School ID"),
+            OpenApiParameter("status", type=str, description="Filter by status (OPEN, IN_BIDDING, etc.)"),
+            OpenApiParameter("category", type=str, description="Filter by category (PLUMBING, etc.)"),
+            OpenApiParameter("priority_level", type=str, description="Filter by priority (LOW, MEDIUM, HIGH)"),
+        ]
     ),
     retrieve=extend_schema(
         summary="Get contract with full lifecycle",

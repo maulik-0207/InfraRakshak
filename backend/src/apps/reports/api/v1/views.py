@@ -2,8 +2,10 @@
 Reports API v1 views.
 """
 
-from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from apps.reports.api.v1.serializers import (
     WeeklyElectricalReportSerializer,
@@ -28,6 +30,11 @@ from apps.reports.models import (
         summary="List weekly reports",
         description="Paginated list of weekly reports. Filter by school, status, or date range.",
         tags=["Reports"],
+        parameters=[
+            OpenApiParameter("school", type=int, description="Filter by School ID"),
+            OpenApiParameter("status", type=str, description="Filter by status (DRAFT, SUBMITTED, REVIEWED)"),
+            OpenApiParameter("week_start_date", type=str, description="Filter by start date (YYYY-MM-DD)"),
+        ]
     ),
     retrieve=extend_schema(
         summary="Get weekly report with sub-reports",

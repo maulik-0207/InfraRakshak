@@ -1,100 +1,185 @@
 """
-Accounts app services for business logic.
+Accounts app services — Refactored for New Onboarding Workflows.
 """
 
 import logging
+import random
+import string
+import pandas as pd
 from django.utils import timezone
 from datetime import timedelta
 from django.db import transaction
-from django.db.models import QuerySet
+from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
-from .models import User, UserVerificationToken
-from .tasks import send_verification_email_task
+from apps.accounts.models import (
+    User, UserVerificationToken, 
+    SchoolAccountProfile, DEOProfile, ContractorProfile, 
+    AdminStaffProfile, StaffProfile
+)
+from apps.accounts.tasks import (
+    send_verification_email_task,
+    send_account_credentials_task
+)
 
+User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
 class AuthService:
     """
-    Handles authentication-related workflows: registration, verification, and login logic.
+    Handles authentication-related workflows: registration and verification.
     """
 
     @staticmethod
     @transaction.atomic
-    def register_user(validated_data: dict) -> User:
-        """
-        Creates a new user and triggers the verification process.
-        """
-        # Remove profile data if present to handle separately in view/serializer
-        profile_data = validated_data.pop('profile_data', {})
+    def register_school(data: dict) -> User:
+        """Self-registration for schools."""
+        email = data.pop('email')
+        password = data.pop('password')
         
-        user = User.objects.create_user(**validated_data)
-        user.is_active = True  # User can log in but is_verified stays False
-        user.is_verified = False
-        user.save()
+        user = User.objects.create_user(
+            email=email, password=password, role=User.Role.SCHOOL
+        )
         
-        # Track registration
-        logger.info(f"New user registered: {user.username} ({user.email})")
+        # Create profile
+        SchoolAccountProfile.objects.create(user=user, **data)
         
-        # Trigger verification
         AuthService.trigger_verification_flow(user)
+        logger.info(f"School account registered: {email}")
+        return user
+
+    @staticmethod
+    @transaction.atomic
+    def register_contractor(data: dict) -> User:
+        """Self-registration for contractors."""
+        email = data.pop('email')
+        password = data.pop('password')
         
+        user = User.objects.create_user(
+            email=email, password=password, role=User.Role.CONTRACTOR
+        )
+        
+        # Create profile
+        ContractorProfile.objects.create(user=user, **data)
+        
+        AuthService.trigger_verification_flow(user)
+        logger.info(f"Contractor account registered: {email}")
         return user
 
     @staticmethod
     def trigger_verification_flow(user: User):
-        """
-        Generates a token and sends the verification email.
-        """
-        # Expire old tokens
-        user.verification_tokens.filter(is_used=False).update(is_used=True)
-        
-        # Create new token (expires in 24 hours)
+        """Generates a token and sends the verification email."""
         expires_at = timezone.now() + timedelta(hours=24)
         token_obj = UserVerificationToken.objects.create(
             user=user,
             expires_at=expires_at
         )
-        
-        # Send async email
         send_verification_email_task.delay(
             email=user.email,
-            username=user.username,
             token=str(token_obj.token)
         )
-        
-        logger.info(f"Verification flow triggered for {user.email}")
 
     @staticmethod
     @transaction.atomic
     def verify_email(token_str: str) -> bool:
-        """
-        Validates token and marks user as verified.
-        """
         try:
             token_obj = UserVerificationToken.objects.select_related('user').get(
-                token=token_str,
-                is_used=False
+                token=token_str, is_used=False
             )
-            
             if token_obj.is_expired():
-                logger.warning(f"Expired token attempt for {token_obj.user.email}")
-                token_obj.is_used = True
-                token_obj.save()
                 return False
             
-            # Success
             user = token_obj.user
             user.is_verified = True
             user.save()
             
             token_obj.is_used = True
             token_obj.save()
-            
-            logger.info(f"Email verified successfully for {user.email}")
             return True
-            
         except UserVerificationToken.DoesNotExist:
-            logger.error(f"Invalid verification token: {token_str}")
             return False
+
+
+class OnboardingService:
+    """
+    Handles bulk creation and parent-managed onboarding.
+    """
+
+    @staticmethod
+    def generate_random_password(length=12):
+        chars = string.ascii_letters + string.digits + "!@#$%^&*"
+        return ''.join(random.choice(chars) for _ in range(length))
+
+    @staticmethod
+    @transaction.atomic
+    def bulk_onboard_from_excel(file, role, creator_user=None):
+        """
+        Parses an Excel file and creates accounts with random passwords.
+        """
+        try:
+            df = pd.read_excel(file)
+        except Exception as e:
+            raise ValidationError(f"Invalid Excel file: {e}")
+
+        required_cols = ['email', 'full_name', 'phone_no']
+        if role == User.Role.DEO:
+            required_cols.append('district')
+        elif role == User.Role.SCHOOL:
+            required_cols.extend(['school_id', 'school_name', 'district', 'address', 'school_type'])
+
+        for col in required_cols:
+            if col not in df.columns:
+                raise ValidationError(f"Missing column in Excel: {col}")
+
+        created_users = []
+        for _, row in df.iterrows():
+            email = str(row['email']).strip()
+            password = OnboardingService.generate_random_password()
+            
+            if User.objects.filter(email=email).exists():
+                logger.warning(f"User {email} already exists, skipping.")
+                continue
+
+            user = User.objects.create_user(
+                email=email, password=password, role=role, is_verified=True # Bulk added are verified
+            )
+            
+            # Create Role Profile
+            if role == User.Role.DEO:
+                DEOProfile.objects.create(
+                    user=user, 
+                    district=row['district'],
+                    office_address=row.get('office_address', '')
+                )
+            elif role == User.Role.ADMIN_STAFF and creator_user:
+                deo_profile = getattr(creator_user, 'deo_profile', None)
+                if not deo_profile:
+                    raise ValidationError("Creator must be a DEO to add Admin Staff.")
+                AdminStaffProfile.objects.create(
+                    user=user,
+                    parent_deo=deo_profile,
+                    full_name=row['full_name'],
+                    phone_no=str(row['phone_no'])
+                )
+            elif role == User.Role.STAFF and creator_user:
+                school_profile = getattr(creator_user, 'school_profile', None)
+                if not school_profile:
+                    raise ValidationError("Creator must be a School to add Staff.")
+                StaffProfile.objects.create(
+                    user=user,
+                    parent_school=school_profile,
+                    full_name=row['full_name'],
+                    phone_no=str(row['phone_no'])
+                )
+
+            # Send Credentials Email
+            send_account_credentials_task.delay(
+                email=user.email,
+                name=row.get('full_name', 'User'),
+                password=password,
+                role_display=user.get_role_display()
+            )
+            created_users.append(user)
+
+        return len(created_users)

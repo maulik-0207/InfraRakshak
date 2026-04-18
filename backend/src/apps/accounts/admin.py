@@ -1,19 +1,15 @@
 """
-Accounts app admin configuration.
+Accounts app admin configuration — Refactored.
 """
 
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-
+from django.contrib.auth import get_user_model
 from apps.accounts.models import (
-    AdminStaff,
-    Contractor,
-    DEO,
-    Principal,
-    Role,
-    SchoolStaff,
-    User,
+    SchoolAccountProfile, DEOProfile, ContractorProfile, 
+    AdminStaffProfile, StaffProfile
 )
+
+User = get_user_model()
 
 
 # ===========================================================================
@@ -21,13 +17,11 @@ from apps.accounts.models import (
 # ===========================================================================
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
-    """Custom admin for the User model."""
+class UserAdmin(admin.ModelAdmin):
+    """Custom admin for the refactored User model."""
 
     list_display = (
-        "username",
         "email",
-        "phone_no",
         "role",
         "is_verified",
         "is_active",
@@ -35,87 +29,52 @@ class UserAdmin(BaseUserAdmin):
         "date_joined",
     )
     list_filter = ("role", "is_verified", "is_active", "is_staff")
-    search_fields = ("username", "email", "first_name", "last_name", "phone_no")
+    search_fields = ("email",)
     ordering = ("-date_joined",)
-
-    # Extend the default fieldsets with our custom fields
-    fieldsets = BaseUserAdmin.fieldsets + (
-        (
-            "Extended Info",
-            {
-                "fields": ("phone_no", "role", "is_verified"),
-            },
-        ),
+    
+    fieldsets = (
+        (None, {"fields": ("email", "password")}),
+        ("Permissions", {"fields": ("role", "is_verified", "is_active", "is_staff", "is_superuser")}),
+        ("Dates", {"fields": ("date_joined",)}),
     )
-
-    add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        (
-            "Extended Info",
-            {
-                "fields": ("email", "phone_no", "role", "is_verified"),
-            },
-        ),
-    )
-
-
-# ===========================================================================
-# Role Admin
-# ===========================================================================
-
-@admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
-    list_display = ("name", "description", "created_at")
-    search_fields = ("name",)
-    ordering = ("name",)
+    readonly_fields = ("date_joined",)
 
 
 # ===========================================================================
 # Profile Admins
 # ===========================================================================
 
-@admin.register(Principal)
-class PrincipalAdmin(admin.ModelAdmin):
-    list_display = ("user", "school", "joining_date", "qualification", "experience_years")
-    search_fields = ("user__username", "user__email", "school__name")
-    list_filter = ("experience_years",)
-    raw_id_fields = ("user", "school")
-
-
-@admin.register(SchoolStaff)
-class SchoolStaffAdmin(admin.ModelAdmin):
-    list_display = ("user", "school", "designation")
-    search_fields = ("user__username", "user__email", "designation")
-    list_filter = ("designation",)
-    raw_id_fields = ("user", "school")
-
-
-@admin.register(Contractor)
-class ContractorAdmin(admin.ModelAdmin):
-    list_display = (
-        "user",
-        "company_name",
-        "license_number",
-        "specialization",
-        "experience_years",
-        "rating",
-        "is_available",
-    )
-    search_fields = ("user__username", "company_name", "license_number")
-    list_filter = ("specialization", "is_available")
+@admin.register(SchoolAccountProfile)
+class SchoolAccountProfileAdmin(admin.ModelAdmin):
+    list_display = ("school_name", "school_id", "user", "district", "school_type")
+    search_fields = ("school_name", "school_id", "user__email", "district")
+    list_filter = ("school_type", "district")
     raw_id_fields = ("user",)
 
 
-@admin.register(DEO)
-class DEOAdmin(admin.ModelAdmin):
-    list_display = ("user", "district", "office_address")
-    search_fields = ("user__username", "user__email", "district")
-    list_filter = ("district",)
+@admin.register(DEOProfile)
+class DEOProfileAdmin(admin.ModelAdmin):
+    list_display = ("district", "user", "office_address")
+    search_fields = ("district", "user__email")
     raw_id_fields = ("user",)
 
 
-@admin.register(AdminStaff)
-class AdminStaffAdmin(admin.ModelAdmin):
-    list_display = ("user", "office_name", "designation", "district")
-    search_fields = ("user__username", "user__email", "office_name", "designation")
-    list_filter = ("district", "designation")
+@admin.register(ContractorProfile)
+class ContractorProfileAdmin(admin.ModelAdmin):
+    list_display = ("company_name", "license_number", "user", "phone_no")
+    search_fields = ("company_name", "license_number", "user__email")
     raw_id_fields = ("user",)
+
+
+@admin.register(AdminStaffProfile)
+class AdminStaffProfileAdmin(admin.ModelAdmin):
+    list_display = ("full_name", "user", "parent_deo", "phone_no")
+    search_fields = ("full_name", "user__email", "parent_deo__district")
+    raw_id_fields = ("user", "parent_deo")
+
+
+@admin.register(StaffProfile)
+class StaffProfileAdmin(admin.ModelAdmin):
+    list_display = ("full_name", "user", "parent_school", "phone_no")
+    search_fields = ("full_name", "user__email", "parent_school__school_name")
+    raw_id_fields = ("user", "parent_school")

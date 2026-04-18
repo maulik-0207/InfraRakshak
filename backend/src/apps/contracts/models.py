@@ -154,7 +154,7 @@ class ContractBid(TimeStampedModel):
         related_name="bids",
     )
     contractor = models.ForeignKey(
-        "accounts.Contractor",
+        "accounts.ContractorProfile",
         on_delete=models.CASCADE,
         related_name="bids",
     )
@@ -211,7 +211,7 @@ class ContractAssignment(TimeStampedModel):
         related_name="assignment",
     )
     contractor = models.ForeignKey(
-        "accounts.Contractor",
+        "accounts.ContractorProfile",
         on_delete=models.PROTECT,
         related_name="assignments",
     )

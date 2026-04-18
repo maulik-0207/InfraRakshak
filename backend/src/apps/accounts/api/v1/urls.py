@@ -1,31 +1,38 @@
 """
-Accounts API v1 URL configuration.
+Accounts API v1 URL configuration — Refactored.
 """
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.accounts.api.v1.views import (
-    AdminStaffViewSet,
-    ContractorViewSet,
-    DEOViewSet,
-    PrincipalViewSet,
-    RoleViewSet,
-    SchoolStaffViewSet,
     UserViewSet,
+    SchoolRegistrationView,
+    ContractorRegistrationView,
+    BulkOnboardingView,
+    SchoolAccountProfileViewSet,
+    DEOProfileViewSet,
+    ContractorProfileViewSet,
+    AdminStaffProfileViewSet,
+    StaffProfileViewSet
 )
 
 app_name = "accounts"
 
 router = DefaultRouter()
-router.register("roles", RoleViewSet, basename="role")
 router.register("users", UserViewSet, basename="user")
-router.register("principals", PrincipalViewSet, basename="principal")
-router.register("school-staff", SchoolStaffViewSet, basename="school-staff")
-router.register("contractors", ContractorViewSet, basename="contractor")
-router.register("deos", DEOViewSet, basename="deo")
-router.register("admin-staff", AdminStaffViewSet, basename="admin-staff")
+router.register("profiles/schools", SchoolAccountProfileViewSet, basename="school-profile")
+router.register("profiles/deos", DEOProfileViewSet, basename="deo-profile")
+router.register("profiles/contractors", ContractorProfileViewSet, basename="contractor-profile")
+router.register("profiles/admin-staff", AdminStaffProfileViewSet, basename="admin-staff-profile")
+router.register("profiles/staff", StaffProfileViewSet, basename="staff-profile")
 
 urlpatterns = [
+    # Auth & Registration
+    path("register/school/", SchoolRegistrationView.as_view(), name="register-school"),
+    path("register/contractor/", ContractorRegistrationView.as_view(), name="register-contractor"),
+    path("onboard/bulk/", BulkOnboardingView.as_view(), name="onboard-bulk"),
+    
+    # ViewSets
     path("", include(router.urls)),
 ]

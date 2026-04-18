@@ -19,6 +19,11 @@ from apps.predictions.models import DistrictReport, PredictionIssues, Prediction
         summary="List prediction reports",
         description="Paginated list of ML-generated risk predictions. Filter by school, risk level, or priority.",
         tags=["Predictions"],
+        parameters=[
+            OpenApiParameter("school", type=int, description="Filter by School ID"),
+            OpenApiParameter("overall_risk_level", type=str, description="Filter by risk (LOW, MEDIUM, HIGH, CRITICAL)"),
+            OpenApiParameter("weekly_report", type=int, description="Filter by source Weekly Report ID"),
+        ]
     ),
     retrieve=extend_schema(
         summary="Get prediction report with issues",
@@ -84,6 +89,10 @@ class PredictionIssuesViewSet(viewsets.ModelViewSet):
         summary="List district reports",
         description="Aggregated risk summaries per district per week. Filter by district or date.",
         tags=["Predictions"],
+        parameters=[
+            OpenApiParameter("district", type=str, description="Filter by District name"),
+            OpenApiParameter("week_start_date", type=str, description="Filter by start date"),
+        ]
     ),
     retrieve=extend_schema(summary="Get district report", tags=["Predictions"]),
     create=extend_schema(

@@ -1,332 +1,280 @@
 """
-Accounts API v1 views.
-
-ViewSets for User, Role, and profile models with full
-drf-spectacular documentation.
+Accounts API v1 views — Refactored for New Workflows.
 """
 
-from django.contrib.auth import get_user_model
-from drf_spectacular.utils import (
-    OpenApiExample,
-    OpenApiResponse,
-    extend_schema,
-    extend_schema_view,
-)
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, status, viewsets, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from drf_spectacular.utils import (
+    extend_schema, 
+    extend_schema_view, 
+    OpenApiParameter, 
+    OpenApiResponse, 
+    OpenApiExample
+)
 
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from apps.accounts.models import (
+    User, SchoolAccountProfile, DEOProfile, ContractorProfile, 
+    AdminStaffProfile, StaffProfile
+)
 from apps.accounts.api.v1.serializers import (
-    AdminStaffSerializer,
-    ContractorSerializer,
-    DEOSerializer,
-    PrincipalSerializer,
-    RoleSerializer,
-    SchoolStaffSerializer,
-    UserDetailSerializer,
-    UserListSerializer,
-    UserRegisterSerializer,
-    CustomTokenObtainPairSerializer,
+    UserListSerializer, UserDetailSerializer,
+    SchoolAccountProfileSerializer, DEOProfileSerializer, ContractorProfileSerializer,
+    AdminStaffProfileSerializer, StaffProfileSerializer,
+    SchoolRegistrationSerializer, ContractorRegistrationSerializer,
+    BulkOnboardingSerializer,
+    CustomTokenObtainPairSerializer
 )
-from apps.accounts.models import AdminStaff, Contractor, DEO, Principal, Role, SchoolStaff
-from apps.accounts.services import AuthService
-
-User = get_user_model()
+from apps.accounts.services import AuthService, OnboardingService
 
 
 # ===========================================================================
-# Role ViewSet
+# User & Auth
 # ===========================================================================
 
-@extend_schema_view(
-    list=extend_schema(
-        summary="List all roles",
-        description="Returns all available user roles. No authentication required for listing.",
-        tags=["Accounts"],
+@extend_schema(
+    summary="User Login (JWT)",
+    description=(
+        "Authenticates a user by email and returns access/refresh tokens. "
+        "Also includes the user's role and a specialized dashboard redirect URL."
     ),
-    retrieve=extend_schema(
-        summary="Get role details",
-        description="Retrieve a single role by its ID.",
-        tags=["Accounts"],
-    ),
-    create=extend_schema(
-        summary="Create a new role",
-        description="Create a new role entry. Admin-only.",
-        tags=["Accounts"],
-        examples=[
-            OpenApiExample(
-                "Create Role",
-                value={"name": "INSPECTOR", "description": "School infrastructure inspector"},
-                request_only=True,
-            ),
-        ],
-    ),
-    update=extend_schema(summary="Update a role", tags=["Accounts"]),
-    partial_update=extend_schema(summary="Partially update a role", tags=["Accounts"]),
-    destroy=extend_schema(summary="Delete a role", tags=["Accounts"]),
-)
-class RoleViewSet(viewsets.ModelViewSet):
-    """
-    CRUD operations for user roles.
-
-    Roles are used to control access across the platform.
-    Default roles: DEO, ADMIN_STAFF, PRINCIPAL, SCHOOL_STAFF, CONTRACTOR.
-    """
-
-    queryset = Role.objects.all()
-    serializer_class = RoleSerializer
-    search_fields = ["name"]
-    ordering_fields = ["name", "created_at"]
-
-
-# ===========================================================================
-# User ViewSet
-# ===========================================================================
-
-@extend_schema_view(
-    list=extend_schema(
-        summary="List all users",
-        description="Paginated list of all users. Filterable by role and status.",
-        tags=["Accounts"],
-    ),
-    retrieve=extend_schema(
-        summary="Get user details",
-        description="Retrieve full details for a single user.",
-        tags=["Accounts"],
-        responses={200: UserDetailSerializer},
-    ),
-    create=extend_schema(
-        summary="Register a new user",
-        description=(
-            "Create a new user account with email verification pending.\n\n"
-            "**Validation rules:**\n"
-            "- `username` must be unique\n"
-            "- `email` must be unique and valid\n"
-            "- `password` minimum 8 characters\n"
-            "- `password_confirm` must match `password`"
+    tags=["Auth"],
+    responses={
+        200: OpenApiResponse(
+            description="Login successful. Returns JWT tokens and user metadata.",
         ),
-        tags=["Auth"],
-        request=UserRegisterSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=UserListSerializer,
-                description="User created successfully.",
-            ),
-            400: OpenApiResponse(description="Validation error."),
-        },
-        examples=[
-            OpenApiExample(
-                "Register User",
-                value={
-                    "username": "rajesh_kumar",
-                    "email": "rajesh@example.com",
-                    "first_name": "Rajesh",
-                    "last_name": "Kumar",
-                    "phone_no": "+919876543210",
-                    "role": 1,
-                    "password": "SecureP@ss123",
-                    "password_confirm": "SecureP@ss123",
-                },
-                request_only=True,
-            ),
-        ],
+        401: OpenApiResponse(description="Invalid credentials or unverified email."),
+    }
+)
+class LoginView(TokenObtainPairView):
+    """
+    Custom Login View using Email.
+    Returns access, refresh, role, and redirect_url.
+    """
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List all users", 
+        description="Returns a paginated list of all users. Can be filtered by role, status, and verification state.",
+        tags=["Accounts"],
+        parameters=[
+            OpenApiParameter("role", type=str, description="Filter by user role (SCHOOL, DEO, etc.)"),
+            OpenApiParameter("is_active", type=bool, description="Filter by active status"),
+            OpenApiParameter("is_verified", type=bool, description="Filter by email verification status"),
+        ]
     ),
+    retrieve=extend_schema(summary="Get user details", tags=["Accounts"]),
     update=extend_schema(summary="Update user", tags=["Accounts"]),
     partial_update=extend_schema(summary="Partially update user", tags=["Accounts"]),
-    destroy=extend_schema(summary="Deactivate user", tags=["Accounts"]),
+    destroy=extend_schema(summary="Delete user", tags=["Accounts"]),
 )
 class UserViewSet(viewsets.ModelViewSet):
     """
-    User management endpoints.
-
-    - **POST** (create) is used for registration (no auth required).
-    - All other actions require authentication.
+    Standard user management.
     """
-
-    queryset = User.objects.select_related("role").all()
-    search_fields = ["username", "email", "first_name", "last_name"]
+    queryset = User.objects.all()
+    search_fields = ["email"]
     filterset_fields = ["role", "is_active", "is_verified"]
-    ordering_fields = ["date_joined", "username"]
-
-    def get_permissions(self):
-        if self.action in ["create", "verify_email"]:
-            return [permissions.AllowAny()]
-        return super().get_permissions()
-
-    @extend_schema(
-        summary="Verify email address",
-        description="Verify a user's email address using a UUID token sent via email.",
-        tags=["Auth"],
-        parameters=[
-            {"name": "token", "in": "query", "type": "string", "required": True}
-        ],
-        responses={
-            200: OpenApiResponse(description="Email verified successfully."),
-            400: OpenApiResponse(description="Invalid or expired token."),
-        },
-    )
-    @action(detail=False, methods=["get"], url_path="verify-email")
-    def verify_email(self, request):
-        token = request.query_params.get("token")
-        if not token:
-            return Response(
-                {"error": "Token is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        success = AuthService.verify_email(token)
-        if success:
-            return Response(
-                {"message": "Email verified successfully. You can now log in."},
-                status=status.HTTP_200_OK
-            )
-        return Response(
-            {"error": "Invalid or expired token."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.action == "create":
-            return UserRegisterSerializer
         if self.action in ("retrieve", "update", "partial_update"):
             return UserDetailSerializer
         return UserListSerializer
 
-    def get_permissions(self):
-        if self.action == "create":
-            return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
-
-    @extend_schema(
-        summary="Get current user profile",
-        description="Returns the authenticated user's own profile.",
-        tags=["Auth"],
-        responses={200: UserDetailSerializer},
-    )
+    @extend_schema(summary="Get current user info", tags=["Auth"])
     @action(detail=False, methods=["get"], url_path="me")
     def me(self, request):
-        """Return the current authenticated user's profile."""
         serializer = UserDetailSerializer(request.user)
         return Response(serializer.data)
+
+    @extend_schema(
+        summary="Verify email address",
+        tags=["Auth"],
+        parameters=[{"name": "token", "in": "query", "type": "string", "required": True}],
+    )
+    @action(detail=False, methods=["get"], url_path="verify-email", permission_classes=[permissions.AllowAny])
+    def verify_email(self, request):
+        token = request.query_params.get("token")
+        if not token:
+            return Response({"error": "Token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if AuthService.verify_email(token):
+            return Response({"message": "Email verified successfully."}, status=status.HTTP_200_OK)
+        return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SchoolRegistrationView(APIView):
+    """API for self-registration of schools."""
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        summary="School Self-Registration",
+        description="Public endpoint for schools to register their own account. Password must be at least 8 characters.",
+        request=SchoolRegistrationSerializer,
+        responses={201: UserListSerializer},
+        tags=["Auth"],
+        examples=[
+            OpenApiExample(
+                "School Registration",
+                value={
+                    "email": "principal@mg_highschool.edu",
+                    "password": "SecurePassword123",
+                    "school_id": "SCH-00123",
+                    "school_name": "Mahatma Gandhi High School",
+                    "phone_no": "9876543210",
+                    "district": "Ahmedabad",
+                    "address": "123 Education Square, Main St",
+                    "school_type": "Secondary"
+                }
+            )
+        ]
+    )
+    def post(self, request):
+        serializer = SchoolRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = AuthService.register_school(serializer.validated_data)
+        return Response(UserListSerializer(user).data, status=status.HTTP_201_CREATED)
+
+
+class ContractorRegistrationView(APIView):
+    """API for self-registration of contractors."""
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        summary="Contractor Self-Registration",
+        description="Public endpoint for contractors to register their own account and company profile.",
+        request=ContractorRegistrationSerializer,
+        responses={201: UserListSerializer},
+        tags=["Auth"],
+        examples=[
+            OpenApiExample(
+                "Contractor Registration",
+                value={
+                    "email": "contact@buildwell_infra.com",
+                    "password": "SecurePassword123",
+                    "company_name": "BuildWell Infra Pvt Ltd",
+                    "license_number": "LIC-2024-001",
+                    "phone_no": "9988776655"
+                }
+            )
+        ]
+    )
+    def post(self, request):
+        serializer = ContractorRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = AuthService.register_contractor(serializer.validated_data)
+        return Response(UserListSerializer(user).data, status=status.HTTP_201_CREATED)
+
+
+class BulkOnboardingView(APIView):
+    """API for bulk creating accounts (DEOs, Admin Staff, School Staff)."""
+    parser_classes = [parsers.MultiPartParser]
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Bulk Onboarding (Excel)",
+        description=(
+            "Upload an Excel file to bulk-create accounts. "
+            "DEOs can add Admin Staff, Schools can add Staff, and Superusers can add DEOs."
+        ),
+        request=BulkOnboardingSerializer,
+        responses={201: OpenApiResponse(description="Accounts created successfully")},
+        tags=["Onboarding"]
+    )
+    def post(self, request):
+        serializer = BulkOnboardingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        file = serializer.validated_data['file']
+        role = serializer.validated_data['role']
+        
+        # Permission logic
+        if role == User.Role.ADMIN_STAFF and request.user.role != User.Role.DEO:
+            return Response({"error": "Only DEOs can add Admin Staff."}, status=status.HTTP_403_FORBIDDEN)
+        if role == User.Role.STAFF and request.user.role != User.Role.SCHOOL:
+            return Response({"error": "Only School accounts can add staff."}, status=status.HTTP_403_FORBIDDEN)
+        if role == User.Role.DEO and not request.user.is_superuser:
+            return Response({"error": "Only Superusers can add DEOs."}, status=status.HTTP_403_FORBIDDEN)
+
+        count = OnboardingService.bulk_onboard_from_excel(file, role, creator_user=request.user)
+        return Response({"message": f"Successfully created {count} accounts."}, status=status.HTTP_201_CREATED)
 
 
 # ===========================================================================
 # Profile ViewSets
 # ===========================================================================
 
-@extend_schema_view(
-    list=extend_schema(summary="List principals", tags=["Accounts"]),
-    retrieve=extend_schema(summary="Get principal details", tags=["Accounts"]),
-    create=extend_schema(
-        summary="Create principal profile",
-        tags=["Accounts"],
-        examples=[
-            OpenApiExample(
-                "Create Principal",
-                value={
-                    "user": 1,
-                    "school": 1,
-                    "joining_date": "2023-06-15",
-                    "qualification": "M.Ed",
-                    "experience_years": 12,
-                },
-                request_only=True,
-            ),
-        ],
-    ),
-    update=extend_schema(summary="Update principal", tags=["Accounts"]),
-    partial_update=extend_schema(summary="Partially update principal", tags=["Accounts"]),
-    destroy=extend_schema(summary="Delete principal profile", tags=["Accounts"]),
-)
-class PrincipalViewSet(viewsets.ModelViewSet):
-    """CRUD for Principal profiles. Each principal is linked to a User and School."""
-
-    queryset = Principal.objects.select_related("user", "school").all()
-    serializer_class = PrincipalSerializer
-    search_fields = ["user__username", "user__email", "school__name"]
-    filterset_fields = ["school"]
-
+# Helper for Profile ViewSet Docs
+PROFILE_KWARGS = {
+    "list": {"summary": "List profiles", "tags": ["Profiles"]},
+    "retrieve": {"summary": "Get profile details", "tags": ["Profiles"]},
+    "update": {"summary": "Update profile", "tags": ["Profiles"]},
+    "partial_update": {"summary": "Partially update profile", "tags": ["Profiles"]},
+    "destroy": {"summary": "Delete profile", "tags": ["Profiles"]},
+}
 
 @extend_schema_view(
-    list=extend_schema(summary="List school staff", tags=["Accounts"]),
-    retrieve=extend_schema(summary="Get school staff details", tags=["Accounts"]),
-    create=extend_schema(summary="Create school staff profile", tags=["Accounts"]),
-    update=extend_schema(summary="Update school staff", tags=["Accounts"]),
-    partial_update=extend_schema(summary="Partially update school staff", tags=["Accounts"]),
-    destroy=extend_schema(summary="Delete school staff profile", tags=["Accounts"]),
+    list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List school profiles"}),
+    retrieve=extend_schema(**{**PROFILE_KWARGS["retrieve"], "summary": "Get school profile details"}),
+    update=extend_schema(**{**PROFILE_KWARGS["update"], "summary": "Update school profile"}),
+    partial_update=extend_schema(**{**PROFILE_KWARGS["partial_update"], "summary": "Partially update school profile"}),
+    destroy=extend_schema(**{**PROFILE_KWARGS["destroy"], "summary": "Delete school profile"}),
 )
-class SchoolStaffViewSet(viewsets.ModelViewSet):
-    """CRUD for SchoolStaff profiles."""
-
-    queryset = SchoolStaff.objects.select_related("user", "school").all()
-    serializer_class = SchoolStaffSerializer
-    search_fields = ["user__username", "designation"]
-    filterset_fields = ["school", "designation"]
-
+class SchoolAccountProfileViewSet(viewsets.ModelViewSet):
+    queryset = SchoolAccountProfile.objects.all()
+    serializer_class = SchoolAccountProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 @extend_schema_view(
-    list=extend_schema(summary="List contractors", tags=["Accounts"]),
-    retrieve=extend_schema(summary="Get contractor details", tags=["Accounts"]),
-    create=extend_schema(
-        summary="Create contractor profile",
-        tags=["Accounts"],
-        examples=[
-            OpenApiExample(
-                "Create Contractor",
-                value={
-                    "user": 2,
-                    "company_name": "BuildRight Infra Pvt Ltd",
-                    "license_number": "GJ-CON-2024-00123",
-                    "specialization": "PLUMBING",
-                    "experience_years": 8,
-                    "is_available": True,
-                },
-                request_only=True,
-            ),
-        ],
-    ),
-    update=extend_schema(summary="Update contractor", tags=["Accounts"]),
-    partial_update=extend_schema(summary="Partially update contractor", tags=["Accounts"]),
-    destroy=extend_schema(summary="Delete contractor profile", tags=["Accounts"]),
+    list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List DEO profiles"}),
+    retrieve=extend_schema(**{**PROFILE_KWARGS["retrieve"], "summary": "Get DEO profile details"}),
+    update=extend_schema(**{**PROFILE_KWARGS["update"], "summary": "Update DEO profile"}),
+    partial_update=extend_schema(**{**PROFILE_KWARGS["partial_update"], "summary": "Partially update DEO profile"}),
+    destroy=extend_schema(**{**PROFILE_KWARGS["destroy"], "summary": "Delete DEO profile"}),
 )
-class ContractorViewSet(viewsets.ModelViewSet):
-    """CRUD for Contractor profiles."""
-
-    queryset = Contractor.objects.select_related("user").all()
-    serializer_class = ContractorSerializer
-    search_fields = ["company_name", "license_number", "user__username"]
-    filterset_fields = ["specialization", "is_available"]
-
+class DEOProfileViewSet(viewsets.ModelViewSet):
+    queryset = DEOProfile.objects.all()
+    serializer_class = DEOProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 @extend_schema_view(
-    list=extend_schema(summary="List DEOs", tags=["Accounts"]),
-    retrieve=extend_schema(summary="Get DEO details", tags=["Accounts"]),
-    create=extend_schema(summary="Create DEO profile", tags=["Accounts"]),
-    update=extend_schema(summary="Update DEO", tags=["Accounts"]),
-    partial_update=extend_schema(summary="Partially update DEO", tags=["Accounts"]),
-    destroy=extend_schema(summary="Delete DEO profile", tags=["Accounts"]),
+    list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List contractor profiles"}),
+    retrieve=extend_schema(**{**PROFILE_KWARGS["retrieve"], "summary": "Get contractor profile details"}),
+    update=extend_schema(**{**PROFILE_KWARGS["update"], "summary": "Update contractor profile"}),
+    partial_update=extend_schema(**{**PROFILE_KWARGS["partial_update"], "summary": "Partially update contractor profile"}),
+    destroy=extend_schema(**{**PROFILE_KWARGS["destroy"], "summary": "Delete contractor profile"}),
 )
-class DEOViewSet(viewsets.ModelViewSet):
-    """CRUD for DEO (District Education Officer) profiles."""
-
-    queryset = DEO.objects.select_related("user").all()
-    serializer_class = DEOSerializer
-    search_fields = ["user__username", "district"]
-    filterset_fields = ["district"]
-
+class ContractorProfileViewSet(viewsets.ModelViewSet):
+    queryset = ContractorProfile.objects.all()
+    serializer_class = ContractorProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 @extend_schema_view(
-    list=extend_schema(summary="List admin staff", tags=["Accounts"]),
-    retrieve=extend_schema(summary="Get admin staff details", tags=["Accounts"]),
-    create=extend_schema(summary="Create admin staff profile", tags=["Accounts"]),
-    update=extend_schema(summary="Update admin staff", tags=["Accounts"]),
-    partial_update=extend_schema(summary="Partially update admin staff", tags=["Accounts"]),
-    destroy=extend_schema(summary="Delete admin staff profile", tags=["Accounts"]),
+    list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List admin staff profiles"}),
+    retrieve=extend_schema(**{**PROFILE_KWARGS["retrieve"], "summary": "Get admin staff profile details"}),
+    update=extend_schema(**{**PROFILE_KWARGS["update"], "summary": "Update admin staff profile"}),
+    partial_update=extend_schema(**{**PROFILE_KWARGS["partial_update"], "summary": "Partially update admin staff profile"}),
+    destroy=extend_schema(**{**PROFILE_KWARGS["destroy"], "summary": "Delete admin staff profile"}),
 )
-class AdminStaffViewSet(viewsets.ModelViewSet):
-    """CRUD for AdminStaff profiles."""
+class AdminStaffProfileViewSet(viewsets.ModelViewSet):
+    queryset = AdminStaffProfile.objects.all()
+    serializer_class = AdminStaffProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    queryset = AdminStaff.objects.select_related("user").all()
-    serializer_class = AdminStaffSerializer
-    search_fields = ["user__username", "office_name", "designation"]
-    filterset_fields = ["district"]
+@extend_schema_view(
+    list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List school staff profiles"}),
+    retrieve=extend_schema(**{**PROFILE_KWARGS["retrieve"], "summary": "Get school staff profile details"}),
+    update=extend_schema(**{**PROFILE_KWARGS["update"], "summary": "Update school staff profile"}),
+    partial_update=extend_schema(**{**PROFILE_KWARGS["partial_update"], "summary": "Partially update school staff profile"}),
+    destroy=extend_schema(**{**PROFILE_KWARGS["destroy"], "summary": "Delete school staff profile"}),
+)
+class StaffProfileViewSet(viewsets.ModelViewSet):
+    queryset = StaffProfile.objects.all()
+    serializer_class = StaffProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
