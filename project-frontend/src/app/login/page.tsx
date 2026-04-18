@@ -117,7 +117,7 @@ export default function LoginPage() {
           <div className="mt-8 pt-8 border-t border-[#bfc1b7] text-center">
             <p className="text-[15px] text-[#4d4f46] mb-4">Are you a new district administrator?</p>
             <Link href="/register" className="inline-flex items-center justify-center h-10 px-6 bg-[#1e1f23] text-white hover:bg-opacity-90 hover:text-[#F7A501] text-[15px] font-semibold rounded-[4px] transition-colors">
-              Create a new account
+              Create a new account 
             </Link>
           </div>
           
