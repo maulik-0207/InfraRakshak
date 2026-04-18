@@ -47,7 +47,7 @@ export function AppSidebar() {
               src="/logo.png"
               alt="InfraRakshak Logo"
               width={150}
-              height={55}
+              height={0}
               style={{ height: "auto" }}
               className="object-contain"
               priority
