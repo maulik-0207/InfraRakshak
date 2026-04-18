@@ -53,7 +53,7 @@ class SchoolAccountProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolAccountProfile
         fields = [
-            "id", "user", "email", "school_id", "school_name", 
+            "id", "user", "email", "udise_code", "school_name", 
             "phone_no", "district", "address", "school_type",
             "created_at", "updated_at"
         ]
@@ -125,7 +125,7 @@ class SchoolSelfRegistrationSerializer(serializers.Serializer):
     
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    school_id = serializers.CharField()
+    udise_code = serializers.CharField()
     school_name = serializers.CharField()
     phone_no = serializers.CharField()
     district = serializers.CharField()

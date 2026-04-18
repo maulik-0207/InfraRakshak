@@ -38,15 +38,6 @@ class School(TimeStampedModel):
         RCC = "RCC", "RCC"
         TEMPORARY = "Temporary", "Temporary"
 
-    school_id = models.CharField(
-        max_length=50,
-        unique=True,
-        db_index=True,
-        blank=True,
-        null=True,
-        verbose_name="School ID",
-        help_text="Custom unique school identifier.",
-    )
     udise_code = models.CharField(
         max_length=20,
         unique=True,

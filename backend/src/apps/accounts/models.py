@@ -109,7 +109,7 @@ class SchoolAccountProfile(TimeStampedModel):
     Profile for the School Account holder.
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="school_profile")
-    school_id = models.CharField(max_length=50, unique=True, db_index=True)
+    udise_code = models.CharField(max_length=50, unique=True, db_index=True)
     school_name = models.CharField(max_length=255)
     phone_no = models.CharField(max_length=15)
     district = models.CharField(max_length=100)
@@ -117,7 +117,7 @@ class SchoolAccountProfile(TimeStampedModel):
     school_type = models.CharField(max_length=50)
 
     def __str__(self) -> str:
-        return f"{self.school_name} ({self.school_id})"
+        return f"{self.school_name} ({self.udise_code})"
 
 
 class DEOProfile(TimeStampedModel):

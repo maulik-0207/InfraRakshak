@@ -18,7 +18,7 @@ def seed_schools_from_profiles():
     
     for profile in profiles:
         school, created = School.objects.get_or_create(
-            udise_code=profile.school_id, 
+            udise_code=profile.udise_code, 
             defaults={
                 "name": profile.school_name,
                 "address": profile.address,

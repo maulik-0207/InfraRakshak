@@ -126,7 +126,7 @@ class OnboardingService:
         if role == User.Role.DEO:
             required_cols.append('district')
         elif role == User.Role.SCHOOL:
-            required_cols.extend(['school_id', 'school_name', 'district', 'address', 'school_type'])
+            required_cols.extend(['udise_code', 'school_name', 'district', 'address', 'school_type'])
 
         for col in required_cols:
             if col not in df.columns:
