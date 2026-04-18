@@ -175,6 +175,109 @@ The notebooks must be executed in the following sequence to ensure proper data p
 
 ---
 
+## Algorithms Overview
+
+### RandomForestClassifier
+
+**Used in:** Plumbing-Model, Electrical-Model, Structural-Model (primary models)
+
+**Description:**
+Random Forest is an ensemble learning method that builds multiple decision trees during training and outputs predictions based on the aggregated results of all trees. Each tree is trained on a random subset of the data and features, introducing diversity that improves generalization.
+
+**Key Characteristics:**
+
+- Handles both binary and multi-class classification
+- Robust to outliers and missing values
+- Provides feature importance rankings
+- Non-parametric algorithm (no assumptions about data distribution)
+- Naturally handles mixed feature types (numerical and categorical)
+
+**Why Used in This Project:**
+
+- Excellent performance with tabular infrastructure data
+- Captures non-linear relationships between features and failures
+- Provides probability estimates for risk assessment
+- Resistant to overfitting due to ensemble averaging
+- Computationally efficient for inference (critical for priority scoring)
+
+**Hyperparameters Configured:**
+
+- Number of trees: Optimized for accuracy vs. performance trade-off
+- Max depth: Controls tree complexity to prevent overfitting
+- Min samples split/leaf: Regularization parameters
+- Bootstrap sampling: Enables independent tree training
+
+---
+
+### LogisticRegression
+
+**Used in:** Plumbing-Model (baseline comparison)
+
+**Description:**
+Logistic Regression is a linear classifier that models the probability of a failure occurrence using a sigmoid function. It outputs a probability between 0 and 1 by fitting a linear decision boundary.
+
+**Key Characteristics:**
+
+- Interpretable linear model
+- Fast training and inference
+- Provides probability-based predictions
+- Sensitive to feature scaling
+- Works well with linearly separable data
+
+**Why Used in This Project:**
+
+- Serves as baseline model to compare against Random Forest
+- Provides interpretable coefficients for feature importance
+- Validates that non-linear models (Random Forest) add value
+- Lightweight alternative for scenarios requiring simplicity
+
+---
+
+### Weighted Aggregation Layer
+
+**Used in:** Main-Model (combined decision layer)
+
+**Description:**
+Weighted aggregation is a deterministic decision-making algorithm that combines outputs from multiple models using predefined weights and domain logic. It synthesizes independent predictions into a unified priority score through mathematical weighted summation.
+
+**Algorithm Logic:**
+
+1. Extract individual model predictions
+2. Map predictions to standardized risk scales
+3. Apply domain-specific weights (urgency, impact factors)
+4. Calculate weighted sum: Priority = Sum(risk × urgency × impact)
+5. Normalize result to 0-100 scale
+
+**Key Characteristics:**
+
+- Fully interpretable and explainable decisions
+- Combines independent model predictions
+- Incorporates domain knowledge through weighted factors
+- Deterministic and reproducible results
+- Fast computation suitable for real-time inference
+
+**Why Used in This Project:**
+
+- Synthesizes three independent failure predictions into single actionable score
+- Incorporates business logic (impact weights by location)
+- Prioritizes urgent issues requiring immediate action
+- Transparent decision-making for stakeholder communication
+- Easily adjustable weights for policy changes
+
+---
+
+## Detailed Algorithm Specifications
+
+| Model      | Algorithm                        | Type                | Purpose                             | Strengths                                          |
+| ---------- | -------------------------------- | ------------------- | ----------------------------------- | -------------------------------------------------- |
+| Plumbing   | RandomForestClassifier (Primary) | Ensemble Classifier | Binary failure prediction           | High accuracy, handles imbalance, robust features  |
+| Plumbing   | LogisticRegression (Baseline)    | Linear Classifier   | Comparison baseline                 | Interpretable, fast, establishes performance floor |
+| Electrical | RandomForestClassifier           | Ensemble Classifier | Binary failure prediction           | Non-linear relationships, domain-specific features |
+| Structural | RandomForestClassifier           | Ensemble Classifier | Multi-class severity classification | Multi-class support, probability outputs per class |
+| Main       | Weighted Aggregation             | Custom Logic        | Priority score computation          | Explainable, incorporates domain knowledge         |
+
+---
+
 ## Model Features and Predicted Values
 
 ### Plumbing-Model
