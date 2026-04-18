@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
+import { useIsMounted } from "@/hooks/use-is-mounted";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
+  const isMounted = useIsMounted();
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
   
@@ -16,6 +18,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!isMounted) return <div className="min-h-screen bg-[#fdfdf8]" />;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +39,31 @@ export default function LoginPage() {
         throw new Error(data.error?.detail || data.error?.non_field_errors?.[0] || "Invalid credentials. Please try again.");
       }
 
+      console.log(">>> [DEBUG] Login Success. Role:", data.role, "Redirect URL from Backend:", data.redirect_url);
+
       // Update auth store with token, role, and user data
       setAuth(data.access, data.role, data.user);
+      // This acts as a robust fallback if the backend redirect_url is missing or generic
+      const getDashboardPath = (role: string = "", backendPath?: string) => {
+        if (backendPath && backendPath !== "/dashboard" && backendPath !== "/dashboard/") {
+          return backendPath;
+        }
+        
+        const r = (role || "").toUpperCase();
+        if (r === "DEO" || r === "ADMIN_STAFF") return "/deo/dashboard";
+        if (r === "SCHOOL") return "/school/dashboard";
+        if (r === "SCHOOL_STAFF" || r === "STAFF") return "/staff/dashboard";
+        if (r === "CONTRACTOR") return "/contractor/dashboard";
+        return "/dashboard";
+      };
+
+      const dashPath = getDashboardPath(data.role, data.redirect_url);
+      console.log(">>> [DEBUG] Forced Redirecting to:", dashPath);
       
-      // Redirect to the role-specific dashboard path provided by backend
-      // Data format from backend: "/deo/dashboard/" -> strip extra slashes if needed for Next.js router
-      const dashPath = data.redirect_url || "/dashboard";
-      router.push(dashPath);
+      // Use window.location.href to ensure a clean request with the new HttpOnly cookies
+      window.location.href = dashPath;
     } catch (err: any) {
+      console.error(">>> [DEBUG] Login Error Catch:", err);
       setError(err.message);
     } finally {
       setIsLoading(false);

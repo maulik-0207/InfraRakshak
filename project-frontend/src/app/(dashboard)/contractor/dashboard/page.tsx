@@ -21,9 +21,12 @@ import {
   ResponsiveContainer 
 } from "recharts";
 import { useAuthStore } from "@/store/auth-store";
+import { useIsMounted } from "@/hooks/use-is-mounted";
 
 export default function ContractorDashboard() {
+  const isMounted = useIsMounted();
   const { user } = useAuthStore();
+  
   const [stats, setStats] = useState({
     total_bids: 0,
     active_projects: 0,
@@ -48,6 +51,8 @@ export default function ContractorDashboard() {
     }
     fetchStats();
   }, []);
+
+  if (!isMounted) return <div className="min-h-screen bg-[#fdfdf8]" />;
 
   const data = [
     { name: "Jan", revenue: 4000 },

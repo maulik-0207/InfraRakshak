@@ -20,9 +20,12 @@ import {
   Cell
 } from "recharts";
 import { useAuthStore } from "@/store/auth-store";
+import { useIsMounted } from "@/hooks/use-is-mounted";
 
 export default function SchoolDashboard() {
+  const isMounted = useIsMounted();
   const { user } = useAuthStore();
+  
   const [stats, setStats] = useState({
     total_staff: 0,
     weekly_reports_submitted: 0,
@@ -47,6 +50,8 @@ export default function SchoolDashboard() {
     }
     fetchStats();
   }, []);
+
+  if (!isMounted) return <div className="min-h-screen bg-[#fdfdf8]" />;
 
   const chartData = [
     { name: "Week 1", score: 65 },

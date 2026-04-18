@@ -8,12 +8,16 @@ import {
   ChevronRight, 
   CheckCircle2,
   AlertCircle,
-  Plus
+  Plus,
+  FileText
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
+import { useIsMounted } from "@/hooks/use-is-mounted";
 
 export default function StaffDashboard() {
+  const isMounted = useIsMounted();
   const { user } = useAuthStore();
+  
   const [stats, setStats] = useState({
     reports_submitted: 0,
     pending_tasks: 0,
@@ -42,6 +46,8 @@ export default function StaffDashboard() {
     };
     fetchStats();
   }, []);
+
+  if (!isMounted) return <div className="min-h-screen bg-[#fdfdf8]" />;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-5xl">

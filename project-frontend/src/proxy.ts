@@ -23,7 +23,7 @@ function parseJwt(token: string) {
   }
 }
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Bypass for APIs and static files is handled by matcher
@@ -36,18 +36,19 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get("access_token")?.value;
+  const roleCookie = request.cookies.get("user_role")?.value;
+
+  console.log(`>>> [PROXY] Request: ${pathname} | Token: ${token ? "PRESENT" : "MISSING"} | Role: ${roleCookie || "NONE"}`);
+
+  if (!isProtectedPath) {
+    return NextResponse.next();
+  }
 
   if (!token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const roleCookie = request.cookies.get("user_role")?.value;
-
-  if (!roleCookie) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  const role = roleCookie.toUpperCase();
+  const role = roleCookie?.toUpperCase();
 
   // Role Based Routing Logic
   if (pathname.startsWith("/deo")) {
@@ -63,7 +64,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/staff")) {
-    if (role !== "SCHOOL_STAFF") {
+    if (role !== "SCHOOL_STAFF" && role !== "STAFF") {
       return NextResponse.redirect(new URL("/login", request.url));
     }
   }

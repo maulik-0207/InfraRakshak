@@ -55,7 +55,11 @@ export default function ContractsPage() {
     total: contracts.length,
     active: contracts.filter(c => c.status === "ACTIVE").length,
     completed: contracts.filter(c => c.status === "COMPLETED").length,
-    totalBudget: contracts.reduce((acc, curr) => acc + (parseFloat(curr.budget.replace(/,/g, '')) || 0), 0)
+    totalBudget: contracts.reduce((acc, curr) => {
+      const budgetStr = curr.budget?.toString() || "0";
+      const cleanBudget = budgetStr.replace(/,/g, '');
+      return acc + (parseFloat(cleanBudget) || 0);
+    }, 0)
   };
 
   return (

@@ -29,8 +29,10 @@ import {
   Pie
 } from "recharts";
 import { useAuthStore } from "@/store/auth-store";
+import { useIsMounted } from "@/hooks/use-is-mounted";
 
 export default function DeoDashboard() {
+  const isMounted = useIsMounted();
   const { user, token } = useAuthStore();
   console.log(user,token)
   const [stats, setStats] = useState<any>(null);
@@ -52,19 +54,25 @@ export default function DeoDashboard() {
         console.log(districtRes)
         console.log(priorityRes)         
 
+        const parseJson = async (res: Response) => {
+          const text = await res.text();
+          if (!text) return null;
+          try { return JSON.parse(text); } catch { return null; }
+        };
+
         if (statsRes.ok) {
-          const data = await statsRes.json();
-          setStats(data.stats);
+          const data = await parseJson(statsRes);
+          if (data?.stats) setStats(data.stats);
         }
 
         if (districtRes.ok) {
-          const data = await districtRes.json();
-          setDistrictReport(data.results?.[0] || data[0]);
+          const data = await parseJson(districtRes);
+          if (data) setDistrictReport(data.results?.[0] || data[0]);
         }
 
         if (priorityRes.ok) {
-          const data = await priorityRes.json();
-          setPriorityReports(data.results || data);
+          const data = await parseJson(priorityRes);
+          if (data) setPriorityReports(data.results || data);
         }
       } catch (err) {
         console.error("Failed to fetch dashboard data", err);
@@ -74,6 +82,8 @@ export default function DeoDashboard() {
     }
     fetchAllData();
   }, []);
+
+  if (!isMounted) return <div className="min-h-screen bg-[#fdfdf8]" />;
 
   const riskData = districtReport ? [
     { name: "High Risk", value: districtReport.high_risk_schools, color: "#ef4444" },
