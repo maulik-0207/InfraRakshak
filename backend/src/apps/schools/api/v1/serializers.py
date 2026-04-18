@@ -19,9 +19,12 @@ class SchoolSerializer(serializers.ModelSerializer):
         fields = [
             "id", "udise_code", "name", "address", "district", "block",
             "cluster", "pincode", "latitude", "longitude",
-            "school_type", "school_type_display", "created_at", "updated_at",
+            "school_type", "school_type_display",
+            "weather_zone", "material_type", "building_age",
+            "is_girls_school", "flood_prone_area", "is_active",
+            "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "is_active", "created_at", "updated_at"]
 
 
 class SchoolProfileSerializer(serializers.ModelSerializer):
@@ -83,7 +86,7 @@ class SchoolInfrastructureSerializer(serializers.ModelSerializer):
             "wiring_condition", "wiring_condition_display",
             "fan_condition", "lighting_condition",
             "building_condition", "building_condition_display",
-            "roof_leakage", "wall_cracks",
+            "roof_leakage", "wall_cracks", "crack_width_mm",
             "toilet_cleanliness", "campus_cleanliness",
             "inspection_score", "submitted_by", "created_at",
         ]
@@ -99,3 +102,31 @@ class SchoolInfrastructureSerializer(serializers.ModelSerializer):
                 "girls_toilets_functional": "Cannot exceed total girls toilets.",
             })
         return attrs
+
+# ===========================================================================
+# Registration Request
+# ===========================================================================
+
+from apps.schools.models import SchoolRegistrationRequest
+
+
+class SchoolRegistrationRequestSerializer(serializers.ModelSerializer):
+    """Serializer for tracking the school registration workflow."""
+
+    school_name = serializers.CharField(source="school.name", read_only=True)
+    submitted_by_name = serializers.CharField(
+        source="submitted_by.get_full_name", read_only=True
+    )
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = SchoolRegistrationRequest
+        fields = [
+            "id", "school", "school_name", "status", "status_display",
+            "submitted_by", "submitted_by_name", "rejection_reason",
+            "processed_at", "processed_by", "created_at",
+        ]
+        read_only_fields = [
+            "id", "status", "submitted_by", "processed_at",
+            "processed_by", "created_at"
+        ]

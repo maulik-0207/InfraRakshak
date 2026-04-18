@@ -9,8 +9,10 @@ from apps.schools.api.v1.serializers import (
     SchoolInfrastructureSerializer,
     SchoolProfileSerializer,
     SchoolSerializer,
+    SchoolRegistrationRequestSerializer,
 )
-from apps.schools.models import School, SchoolInfrastructure, SchoolProfile
+from apps.schools.models import School, SchoolInfrastructure, SchoolProfile, SchoolRegistrationRequest
+from apps.schools.services import SchoolWorkflowService
 
 
 @extend_schema_view(
@@ -57,6 +59,12 @@ class SchoolViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "udise_code", "district"]
     filterset_fields = ["district", "block", "school_type"]
     ordering_fields = ["name", "district", "created_at"]
+    def perform_create(self, serializer):
+        """Overrides create to use the workflow service."""
+        SchoolWorkflowService.submit_registration(
+            user=self.request.user,
+            school_data=serializer.validated_data
+        )
 
 
 @extend_schema_view(
@@ -115,3 +123,63 @@ class SchoolInfrastructureViewSet(viewsets.ModelViewSet):
     search_fields = ["school__name", "school__udise_code"]
     filterset_fields = ["school", "building_condition", "wiring_condition", "survey_date"]
     ordering_fields = ["survey_date", "inspection_score"]
+
+# ===========================================================================
+# Registration Request ViewSet
+# ===========================================================================
+
+from rest_framework import permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
+
+
+@extend_schema_view(
+    list=extend_schema(summary="List registration requests", tags=["Schools Workflow"]),
+    retrieve=extend_schema(summary="Get registration request details", tags=["Schools Workflow"]),
+)
+class SchoolRegistrationRequestViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for tracking school registration requests.
+    DEOs and Admins can approve or reject these requests.
+    """
+
+    queryset = SchoolRegistrationRequest.objects.select_related("school", "submitted_by").all()
+    serializer_class = SchoolRegistrationRequestSerializer
+
+    @extend_schema(
+        summary="Approve or Reject registration",
+        description="Process a pending school registration request.",
+        tags=["Schools Workflow"],
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string", "enum": ["APPROVED", "REJECTED"]},
+                    "reason": {"type": "string"}
+                },
+                "required": ["status"]
+            }
+        },
+        responses={200: SchoolRegistrationRequestSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="process")
+    def process(self, request, pk=None):
+        status_val = request.data.get("status")
+        reason = request.data.get("reason", "")
+        
+        if status_val not in ["APPROVED", "REJECTED"]:
+            return Response(
+                {"error": "Invalid status. Must be APPROVED or REJECTED."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        processed_req = SchoolWorkflowService.process_request(
+            request_id=pk,
+            processed_by=request.user,
+            status=status_val,
+            reason=reason
+        )
+        
+        serializer = self.get_serializer(processed_req)
+        return Response(serializer.data)

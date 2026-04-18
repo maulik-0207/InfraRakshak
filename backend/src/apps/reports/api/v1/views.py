@@ -13,6 +13,7 @@ from apps.reports.api.v1.serializers import (
     WeeklyReportListSerializer,
     WeeklyStructuralReportSerializer,
 )
+from apps.reports.services import ReportCycleService
 from apps.reports.models import (
     WeeklyElectricalReport,
     WeeklyIssues,
@@ -80,6 +81,22 @@ class WeeklyReportViewSet(viewsets.ModelViewSet):
     search_fields = ["school__name", "school__udise_code"]
     filterset_fields = ["school", "status", "week_start_date"]
     ordering_fields = ["week_start_date", "created_at", "status"]
+
+    @extend_schema(
+        summary="Submit and lock weekly report",
+        description="Transitions a DRAFT report to SUBMITTED and locks it. Triggers ML prediction.",
+        tags=["Reports Workflow"],
+        request=None,
+        responses={
+            200: WeeklyReportDetailSerializer,
+            400: OpenApiResponse(description="Report not in DRAFT status or other error."),
+        },
+    )
+    @action(detail=True, methods=["post"], url_path="submit")
+    def submit(self, request, pk=None):
+        report = ReportCycleService.submit_report(pk, request.user)
+        serializer = WeeklyReportDetailSerializer(report)
+        return Response(serializer.data)
 
     def get_serializer_class(self):
         if self.action == "retrieve":

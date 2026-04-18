@@ -26,6 +26,18 @@ class School(TimeStampedModel):
         SECONDARY = "SECONDARY", "Secondary"
         HIGHER_SECONDARY = "HIGHER_SECONDARY", "Higher Secondary"
 
+    class WeatherZone(models.TextChoices):
+        COASTAL = "Coastal", "Coastal"
+        DRY = "Dry", "Dry"
+        HEAVY_RAIN = "Heavy Rain", "Heavy Rain"
+        TRIBAL = "Tribal", "Tribal"
+
+    class MaterialType(models.TextChoices):
+        BRICK = "Brick", "Brick"
+        MIXED = "Mixed", "Mixed"
+        RCC = "RCC", "RCC"
+        TEMPORARY = "Temporary", "Temporary"
+
     udise_code = models.CharField(
         max_length=20,
         unique=True,
@@ -58,6 +70,34 @@ class School(TimeStampedModel):
         db_index=True,
     )
 
+    # ML Specific Fields
+    weather_zone = models.CharField(
+        max_length=20,
+        choices=WeatherZone.choices,
+        default=WeatherZone.DRY,
+        db_index=True,
+    )
+    material_type = models.CharField(
+        max_length=20,
+        choices=MaterialType.choices,
+        default=MaterialType.RCC,
+        db_index=True,
+    )
+    building_age = models.PositiveIntegerField(
+        default=5,
+        help_text="Age of the school building in years.",
+    )
+    is_girls_school = models.BooleanField(
+        default=False,
+        help_text="Whether the school is specifically for girls (impacts priority weights).",
+    )
+    flood_prone_area = models.BooleanField(
+        default=False,
+        help_text="Whether the school is in a geo-spatially identified flood zone.",
+    )
+
+    is_active = models.BooleanField(default=False, db_index=True)
+
     class Meta(TimeStampedModel.Meta):
         verbose_name = "School"
         verbose_name_plural = "Schools"
@@ -65,6 +105,54 @@ class School(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.udise_code})"
+
+
+# ===========================================================================
+# School Registration Request
+# ===========================================================================
+
+class SchoolRegistrationRequest(TimeStampedModel):
+    """
+    Workflow tracker for school registration.
+    """
+
+    class RegistrationStatus(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+
+    school = models.OneToOneField(
+        School,
+        on_delete=models.CASCADE,
+        related_name="registration_request",
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=RegistrationStatus.choices,
+        default=RegistrationStatus.PENDING,
+        db_index=True,
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="school_registration_requests",
+    )
+    rejection_reason = models.TextField(blank=True, default="")
+    processed_at = models.DateTimeField(null=True, blank=True)
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="processed_school_requests",
+        null=True,
+        blank=True,
+    )
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "School Registration Request"
+        verbose_name_plural = "School Registration Requests"
+
+    def __str__(self) -> str:
+        return f"Request: {self.school.name} ({self.status})"
 
 
 # ===========================================================================
@@ -212,6 +300,10 @@ class SchoolInfrastructure(TimeStampedModel):
     )
     roof_leakage = models.BooleanField(default=False)
     wall_cracks = models.BooleanField(default=False)
+    crack_width_mm = models.FloatField(
+        default=0.0,
+        help_text="Maximum crack width measured in millimeters (required for ML structural model).",
+    )
 
     # -- Cleanliness --
     toilet_cleanliness = models.PositiveSmallIntegerField(

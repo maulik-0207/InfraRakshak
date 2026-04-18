@@ -26,8 +26,10 @@ from apps.accounts.api.v1.serializers import (
     UserDetailSerializer,
     UserListSerializer,
     UserRegisterSerializer,
+    CustomTokenObtainPairSerializer,
 )
 from apps.accounts.models import AdminStaff, Contractor, DEO, Principal, Role, SchoolStaff
+from apps.accounts.services import AuthService
 
 User = get_user_model()
 
@@ -145,6 +147,43 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ["username", "email", "first_name", "last_name"]
     filterset_fields = ["role", "is_active", "is_verified"]
     ordering_fields = ["date_joined", "username"]
+
+    def get_permissions(self):
+        if self.action in ["create", "verify_email"]:
+            return [permissions.AllowAny()]
+        return super().get_permissions()
+
+    @extend_schema(
+        summary="Verify email address",
+        description="Verify a user's email address using a UUID token sent via email.",
+        tags=["Auth"],
+        parameters=[
+            {"name": "token", "in": "query", "type": "string", "required": True}
+        ],
+        responses={
+            200: OpenApiResponse(description="Email verified successfully."),
+            400: OpenApiResponse(description="Invalid or expired token."),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="verify-email")
+    def verify_email(self, request):
+        token = request.query_params.get("token")
+        if not token:
+            return Response(
+                {"error": "Token is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        success = AuthService.verify_email(token)
+        if success:
+            return Response(
+                {"message": "Email verified successfully. You can now log in."},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"error": "Invalid or expired token."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def get_serializer_class(self):
         if self.action == "create":

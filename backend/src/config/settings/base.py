@@ -24,6 +24,10 @@ MEDIA_DIR = os.path.join(BASE_DIR.parent, 'media')
 env = environ.Env()
 environ.Env.read_env(env_file = os.path.join(BASE_DIR, '.env'))
 
+# Project paths
+PROJECT_ROOT = BASE_DIR.parent.parent.parent
+ML_MODELS_ROOT = os.path.join(PROJECT_ROOT, 'models')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0.4/howto/deployment/checklist/
@@ -50,6 +54,7 @@ INSTALLED_APPS = [
 
     # Third-party
     'django_celery_results',
+    'django_celery_beat',
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',

@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.accounts.models import AdminStaff, Contractor, DEO, Principal, Role, SchoolStaff
+from apps.accounts.services import AuthService
 
 User = get_user_model()
 
@@ -95,11 +96,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data: dict) -> User:
-        password = validated_data.pop("password")
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
+        return AuthService.register_user(validated_data)
 
 
 # ===========================================================================
@@ -179,3 +176,30 @@ class AdminStaffSerializer(serializers.ModelSerializer):
             "district", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+# ===========================================================================
+# Auth (JWT Customization)
+# ===========================================================================
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Overridden JWT serializer to enforce email verification.
+    """
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        if not self.user.is_verified:
+            raise serializers.ValidationError(
+                {"detail": "Your email address is not verified. Please verify your email before logging in."}
+            )
+        
+        if not self.user.is_active:
+            raise serializers.ValidationError(
+                {"detail": "Your account is inactive. Please contact administration."}
+            )
+            
+        return data

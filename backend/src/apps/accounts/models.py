@@ -5,6 +5,8 @@ Contains the custom User model, Role model, and all role-specific
 profile models (Principal, SchoolStaff, Contractor, DEO, AdminStaff).
 """
 
+import uuid
+from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -75,6 +77,35 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return f"{self.username} ({self.get_full_name() or self.email})"
+
+
+# ===========================================================================
+# Verification Token
+# ===========================================================================
+
+class UserVerificationToken(TimeStampedModel):
+    """
+    Secure token for email verification.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="verification_tokens",
+    )
+    token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Verification Token"
+        verbose_name_plural = "Verification Tokens"
+
+    def __str__(self) -> str:
+        return f"Token for {self.user.email} (Used: {self.is_used})"
+
+    def is_expired(self) -> bool:
+        return timezone.now() > self.expires_at
 
 
 # ===========================================================================

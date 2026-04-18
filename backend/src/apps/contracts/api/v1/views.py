@@ -28,9 +28,11 @@ from apps.contracts.models import (
     ContractBid,
     ContractPayment,
     WorkProgress,
-    WorkProof,
     WorkVerification,
 )
+from apps.contracts.services import ContractLifecycleService
+
+User = settings.AUTH_USER_MODEL
 
 
 # ===========================================================================
@@ -147,8 +149,34 @@ class ContractBidViewSet(viewsets.ModelViewSet):
 
     queryset = ContractBid.objects.select_related("contract", "contractor").all()
     serializer_class = ContractBidSerializer
-    filterset_fields = ["contract", "contractor", "status"]
     ordering_fields = ["bid_amount", "submitted_at"]
+
+    def perform_create(self, serializer):
+        ContractLifecycleService.submit_bid(
+            user=self.request.user,
+            contract_id=serializer.validated_data["contract"].id,
+            quote=float(serializer.validated_data["bid_amount"]),
+            timeline_weeks=serializer.validated_data.get("estimated_days", 30) // 7
+        )
+
+    @extend_schema(
+        summary="Award contract to this bid",
+        description="Selects this bid as the winner and updates the contract status to AWARDED.",
+        tags=["Contracts Workflow"],
+        request=None,
+        responses={200: ContractBidSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="award")
+    def award(self, request, pk=None):
+        contract = ContractLifecycleService.award_contract(
+            bid_id=pk,
+            awarded_by=request.user
+        )
+        # Re-fetch the bid to show updated status
+        from apps.contracts.models import ContractBid
+        bid = ContractBid.objects.get(id=pk)
+        serializer = self.get_serializer(bid)
+        return Response(serializer.data)
 
 
 # ===========================================================================
@@ -260,8 +288,16 @@ class WorkProofViewSet(viewsets.ModelViewSet):
     queryset = WorkProof.objects.select_related("contract", "uploaded_by").all()
     serializer_class = WorkProofSerializer
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
-    filterset_fields = ["contract", "file_type"]
     ordering_fields = ["uploaded_at"]
+
+    def perform_create(self, serializer):
+        ContractLifecycleService.upload_work_proof(
+            contract_id=serializer.validated_data["contract"].id,
+            user=self.request.user,
+            file=serializer.validated_data["file"],
+            progress_percent=80,  # Placeholder, usually would take from request body
+            comment=serializer.validated_data.get("description", "")
+        )
 
 
 # ===========================================================================
