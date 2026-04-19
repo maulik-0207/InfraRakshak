@@ -59,7 +59,7 @@ class FeatureEngineer:
     """
 
     @staticmethod
-    def extract_features(report: WeeklyReport):
+    def extract_features(report: WeeklyReport, projection_days: int = 0):
         """
         Builds feature sets for Plumbing, Electrical, and Structural models.
         """
@@ -72,10 +72,10 @@ class FeatureEngineer:
         # Base school data
         school_data = {
             'num_students': profile.total_students if profile else 500,
-            'building_age': school.building_age,
+            'building_age': school.building_age + (projection_days / 365.25),
             'girls_school': 1 if school.is_girls_school else 0,
             'flood_prone_area': 1 if school.flood_prone_area else 0,
-            'crack_width_mm': infra.crack_width_mm if infra else 0.0,
+            'crack_width_mm': (infra.crack_width_mm if infra else 0.0) * (1 + (0.01 * projection_days)),
         }
 
         # Handle One-Hot Encoded School Fields
@@ -95,15 +95,15 @@ class FeatureEngineer:
             'toilet_functional_ratio': (infra.boys_toilets_functional + infra.girls_toilets_functional) / 
                                       (infra.boys_toilets_total + infra.girls_toilets_total + 1) if infra else 0.5,
             'roof_leak_flag': 1 if (report.structural_report and report.structural_report.roof_leakage) else 0,
-            'condition_score': 7.0, # Placeholder logic
+            'condition_score': max(0.0, 7.0 - (projection_days / 20.0)), # Placeholder logic
             'students_per_toilet': (profile.total_students if profile else 500) / 
                                   (infra.boys_toilets_total + infra.girls_toilets_total + 1) if infra else 30,
-            'weeks_since_last_repair': 12, # To be calculated from contracts
-            'days_since_repair': 84,
+            'weeks_since_last_repair': 12 + (projection_days / 7.0), 
+            'days_since_repair': 84 + projection_days,
             'repair_done': 0,
             'condition_trend': 0,
-            'deterioration_rate': 0.1,
-            'urgency_score': 5.0,
+            'deterioration_rate': 0.1 * (1 + (projection_days / 30.0)),
+            'urgency_score': min(10.0, 5.0 + (projection_days / 15.0)),
         })
 
         # Electrical Features
@@ -112,16 +112,16 @@ class FeatureEngineer:
         el_features.update({
             'wiring_exposed': 1 if (elect and elect.wiring_issues) else 0,
             'power_outage_hours_weekly': elect.power_outage_hours if elect else 0,
-            'condition_score': 8.0,
+            'condition_score': max(0.0, 8.0 - (projection_days / 20.0)),
             'issue_flag': 1 if (elect and (elect.wiring_issues or elect.switchboard_issues)) else 0,
             'students_per_classroom': (profile.total_students if profile else 500) / 
                                      (profile.classrooms_count if (profile and profile.classrooms_count) else 10),
-            'weeks_since_last_repair': 12,
-            'days_since_repair': 84,
+            'weeks_since_last_repair': 12 + (projection_days / 7.0),
+            'days_since_repair': 84 + projection_days,
             'repair_done': 0,
             'condition_trend': 0,
-            'deterioration_rate': 0.05,
-            'urgency_score': 3.0,
+            'deterioration_rate': 0.05 * (1 + (projection_days / 30.0)),
+            'urgency_score': min(10.0, 3.0 + (projection_days / 15.0)),
             'water_leak': pl_features['water_leak'],
             'roof_leak_flag': pl_features['roof_leak_flag'],
         })
@@ -130,15 +130,15 @@ class FeatureEngineer:
         struc = getattr(report, 'structural_report', None)
         st_features = school_data.copy()
         st_features.update({
-            'crack_growth_rate': 0.0, # Computed from history
-            'condition_score': 9.0,
+            'crack_growth_rate': 0.0 + (projection_days * 0.005), # Computed from history
+            'condition_score': max(0.0, 9.0 - (projection_days / 30.0)),
             'roof_leak_flag': pl_features['roof_leak_flag'],
-            'weeks_since_last_repair': 12,
-            'days_since_repair': 84,
+            'weeks_since_last_repair': 12 + (projection_days / 7.0),
+            'days_since_repair': 84 + projection_days,
             'repair_done': 0,
             'condition_trend': 0,
-            'deterioration_rate': 0.02,
-            'urgency_score': 2.0,
+            'deterioration_rate': 0.02 * (1 + (projection_days / 30.0)),
+            'urgency_score': min(10.0, 2.0 + (projection_days / 15.0)),
             'water_leak': pl_features['water_leak'],
             'wiring_exposed': el_features['wiring_exposed'],
             'issue_flag': 1 if (struc and (struc.wall_cracks or struc.plaster_damage)) else 0,
@@ -153,7 +153,7 @@ class PredictionService:
     """
 
     @staticmethod
-    def run_inference(report_id: int):
+    def run_inference(report_id: int, projection_days: int = 0):
         """
         Runs the 3-model pipeline for a specific weekly report.
         """
@@ -163,7 +163,7 @@ class PredictionService:
             return None
 
         registry = ModelRegistry()
-        pl_features, el_features, st_features = FeatureEngineer.extract_features(report)
+        pl_features, el_features, st_features = FeatureEngineer.extract_features(report, projection_days=projection_days)
 
         # 1. Plumbing Prediction
         pl_score = PredictionService._predict(registry, "plumbing", pl_features)
@@ -196,7 +196,8 @@ class PredictionService:
             electrical_risk_level=el_risk,
             structural_score=st_score,
             structural_risk_level=st_risk,
-            model_version="v1.RF.Batch"
+            projection_days=projection_days,
+            model_version=f"v1.RF.Batch{' (Projected)' if projection_days > 0 else ''}"
         )
 
         logger.info(f"Generated PredictionReport {pred_report.id} for {report.school.name}")

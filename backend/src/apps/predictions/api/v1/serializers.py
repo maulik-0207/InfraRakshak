@@ -34,7 +34,7 @@ class PredictionReportListSerializer(serializers.ModelSerializer):
             "plumbing_risk_level", "plumbing_score",
             "electrical_risk_level", "electrical_score",
             "structural_risk_level", "structural_score",
-            "priority_rank", "model_version", "generated_at",
+            "priority_rank", "projection_days", "model_version", "generated_at",
         ]
         read_only_fields = ["id", "generated_at"]
 
@@ -55,7 +55,7 @@ class PredictionReportDetailSerializer(serializers.ModelSerializer):
             "plumbing_risk_level", "plumbing_score",
             "electrical_risk_level", "electrical_score",
             "structural_risk_level", "structural_score",
-            "priority_rank", "model_version", "generated_at",
+            "priority_rank", "projection_days", "model_version", "generated_at",
             "issues", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "generated_at", "created_at", "updated_at"]
@@ -67,6 +67,6 @@ class DistrictReportSerializer(serializers.ModelSerializer):
         fields = [
             "id", "district", "week_start_date", "week_end_date",
             "total_schools", "high_risk_schools", "medium_risk_schools",
-            "low_risk_schools", "avg_score", "generated_at",
+            "low_risk_schools", "avg_score", "projection_days", "generated_at",
         ]
         read_only_fields = ["id", "generated_at"]

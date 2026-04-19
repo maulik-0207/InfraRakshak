@@ -58,6 +58,11 @@ class PredictionReport(TimeStampedModel):
         default=RiskLevel.LOW,
         db_index=True,
     )
+    projection_days = models.PositiveIntegerField(
+        default=0, 
+        db_index=True,
+        help_text="0 for current report, 30/60 for simulated projections."
+    )
     overall_score = models.FloatField(default=0.0)
 
     # -- Plumbing --
@@ -173,6 +178,12 @@ class DistrictReport(TimeStampedModel):
 
     week_start_date = models.DateField(db_index=True)
     week_end_date = models.DateField()
+    
+    projection_days = models.PositiveIntegerField(
+        default=0, 
+        db_index=True,
+        help_text="0 for current report, 30/60 for simulated projections."
+    )
 
     total_schools = models.PositiveIntegerField(default=0)
     high_risk_schools = models.PositiveIntegerField(default=0)
@@ -189,7 +200,7 @@ class DistrictReport(TimeStampedModel):
         ordering = ["-week_start_date", "district"]
         constraints = [
             models.UniqueConstraint(
-                fields=["district", "week_start_date", "week_end_date"],
+                fields=["district", "week_start_date", "week_end_date", "projection_days"],
                 name="uq_district_report_week",
             ),
         ]

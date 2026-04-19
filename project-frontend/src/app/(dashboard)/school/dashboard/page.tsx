@@ -135,12 +135,13 @@ function Empty({ message }: { message: string }) {
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 
 function OverviewPanel() {
+  const [projectionDays, setProjectionDays] = useState(0);
   const { data: dashData, loading: dashLoading } = useApi<DashboardStats>(API.dashboard);
   const { data: reportsRaw, loading: reportsLoading } = useApi<PaginatedResponse<WeeklyReport>>(
     `${API.reports.list}?ordering=-week_start_date&page_size=5`
   );
   const { data: predsRaw, loading: predsLoading } = useApi<PredictionReport[] | PaginatedResponse<PredictionReport>>(
-    `${API.predictions.list}?ordering=-generated_at&page_size=1`
+    `${API.predictions.list}?ordering=-generated_at&page_size=1&projection_days=${projectionDays}`
   );
 
   const stats = dashData?.stats;
@@ -206,7 +207,31 @@ function OverviewPanel() {
 
         {/* Latest Prediction Card */}
         <div className="bg-[#eeefe9] border border-[#b6b7af] rounded-2xl p-8 shadow-sm flex flex-col">
-          <h2 className="text-lg font-black text-[#23251d] mb-6">Latest ML Prediction</h2>
+          <div className="flex flex-col gap-4 mb-6">
+            <h2 className="text-lg font-black text-[#23251d]">Latest ML Prediction</h2>
+            
+            {/* Projection Toggle */}
+            <div className="flex items-center gap-1 bg-[#d8d9d1] p-1 rounded-xl w-fit border border-[#b6b7af]/30">
+              {[
+                { label: "Today", value: 0 },
+                { label: "30d", value: 30 },
+                { label: "60d", value: 60 },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setProjectionDays(opt.value)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    projectionDays === opt.value
+                      ? "bg-white text-[#23251d] shadow-sm"
+                      : "text-[#4d4f46] hover:text-[#23251d] hover:bg-white/50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           {predsLoading ? (
             <Spinner />
           ) : !latestPred ? (

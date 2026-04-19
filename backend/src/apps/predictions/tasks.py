@@ -16,9 +16,12 @@ logger = logging.getLogger(__name__)
 def run_prediction_for_report(report_id: int):
     """
     Task triggered after a weekly report is manually submitted by staff.
-    Runs ML inference and saves results.
+    Runs ML inference and saves results for current, 30-day, and 60-day projections.
     """
-    pred = PredictionService.run_inference(report_id)
-    if pred:
-        logger.info(f"[CELERY] Prediction {pred.id} generated for report {report_id}")
-    return pred.id if pred else None
+    pred_0 = PredictionService.run_inference(report_id, projection_days=0)
+    PredictionService.run_inference(report_id, projection_days=30)
+    PredictionService.run_inference(report_id, projection_days=60)
+    
+    if pred_0:
+        logger.info(f"[CELERY] Projections generated for report {report_id}")
+    return pred_0.id if pred_0 else None

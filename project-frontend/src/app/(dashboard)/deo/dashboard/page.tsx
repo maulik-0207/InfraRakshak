@@ -147,6 +147,7 @@ function Spinner() {
 function OverviewPanel() {
   const { data: dashData, loading: dashLoading } = useApi<DashboardStats>(API.dashboard);
   const [exporting, setExporting] = useState(false);
+  const [projectionDays, setProjectionDays] = useState(0);
 
   const handleExport = async () => {
     setExporting(true);
@@ -170,10 +171,10 @@ function OverviewPanel() {
   };
 
   const { data: districtRaw, loading: distLoading } = useApi<PaginatedResponse<DistrictReport>>(
-    `${API.predictions.district}?ordering=-week_start_date&page_size=1`
+    `${API.predictions.district}?ordering=-week_start_date&page_size=1&projection_days=${projectionDays}`
   );
   const { data: predsRaw, loading: predsLoading } = useApi<PaginatedResponse<PredictionReport>>(
-    `${API.predictions.list}?ordering=priority_rank&page_size=10`
+    `${API.predictions.list}?ordering=priority_rank&page_size=10&projection_days=${projectionDays}`
   );
 
   const district = districtRaw?.results?.[0] ?? null;
@@ -220,11 +221,36 @@ function OverviewPanel() {
 
       {/* Charts + Table */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
         {/* Risk Donut */}
         <div className="bg-[#eeefe9] border border-[#b6b7af] rounded-2xl p-8 shadow-sm">
-          <h2 className="text-lg font-black text-[#23251d] mb-6">
-            Risk Distribution
-          </h2>
+          <div className="flex flex-col gap-4 mb-6">
+            <h2 className="text-lg font-black text-[#23251d]">
+              Risk Distribution
+            </h2>
+            
+            {/* Projection Toggle */}
+            <div className="flex items-center gap-1 bg-[#d8d9d1] p-1 rounded-xl w-fit border border-[#b6b7af]/30">
+              {[
+                { label: "Current", value: 0 },
+                { label: "+30 Days", value: 30 },
+                { label: "+60 Days", value: 60 },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setProjectionDays(opt.value)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    projectionDays === opt.value
+                      ? "bg-white text-[#23251d] shadow-sm"
+                      : "text-[#4d4f46] hover:text-[#23251d] hover:bg-white/50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {distLoading ? (
             <Spinner />
           ) : riskData.length === 0 ? (

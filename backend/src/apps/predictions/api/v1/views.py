@@ -59,7 +59,7 @@ class PredictionReportViewSet(viewsets.ModelViewSet):
     ).prefetch_related("issues").all()
 
     search_fields = ["school__name", "school__udise_code"]
-    filterset_fields = ["school", "overall_risk_level", "weekly_report"]
+    filterset_fields = ["school", "overall_risk_level", "weekly_report", "projection_days"]
     ordering_fields = ["priority_rank", "overall_score", "generated_at"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
@@ -143,7 +143,7 @@ class DistrictReportViewSet(viewsets.ModelViewSet):
     queryset = DistrictReport.objects.all()
     serializer_class = DistrictReportSerializer
     search_fields = ["district"]
-    filterset_fields = ["district", "week_start_date"]
+    filterset_fields = ["district", "week_start_date", "projection_days"]
     ordering_fields = ["week_start_date", "avg_score", "high_risk_schools"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
 
