@@ -9,7 +9,7 @@ import { cookies } from "next/headers";
 
 // Pull configuration from .env.local (Fallback to local loopback for safety)
 // DO NOT append /v1 here as it causes proxy path duplication
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:8000/api";
+const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://192.168.1.29:8000/api";
 
 const FETCH_TIMEOUT_MS = 5000;
 
@@ -17,7 +17,7 @@ async function handleProxyRequest(req: NextRequest, { params }: { params: Promis
   const { path: pathParts } = await params;
   const targetPath = pathParts.join("/");
   const queryString = req.nextUrl.search;
-  
+
   // Construct the URL and sanitize any double slashes caused by path joining (except for the protocol prefix)
   const rawUrl = `${BACKEND_API_URL}/${targetPath}/${queryString}`;
   const targetUrl = rawUrl.replace(/([^:]\/)\/+/g, "$1");
@@ -63,7 +63,7 @@ async function handleProxyRequest(req: NextRequest, { params }: { params: Promis
     if (response.status === 401) {
       const refreshController = new AbortController();
       const refreshTimeoutId = setTimeout(() => refreshController.abort(), FETCH_TIMEOUT_MS);
-      
+
       try {
         const refreshRes = await fetch(`${BACKEND_API_URL}/v1/auth/refresh/`, {
           method: 'POST',
@@ -80,10 +80,10 @@ async function handleProxyRequest(req: NextRequest, { params }: { params: Promis
           cookieStore.set('access_token', newAccess, { httpOnly: true, path: '/', maxAge: 15 * 60 });
           // Update Authorization header and retry original request
           reqHeaders.set('Authorization', `Bearer ${newAccess}`);
-          
+
           const retryController = new AbortController();
           const retryTimeoutId = setTimeout(() => retryController.abort(), FETCH_TIMEOUT_MS);
-          
+
           response = await fetch(targetUrl, {
             method: req.method,
             headers: reqHeaders,
@@ -112,7 +112,7 @@ async function handleProxyRequest(req: NextRequest, { params }: { params: Promis
     if (error.name === "AbortError" || error.message.includes("Timeout")) {
       console.error(`[PROXY FAILURE] Django Backend at ${BACKEND_API_URL} timed out after ${FETCH_TIMEOUT_MS}ms. It may be offline.`);
       return NextResponse.json(
-        { error: "Service Unavailable. The backend server is currently unreachable or offline." }, 
+        { error: "Service Unavailable. The backend server is currently unreachable or offline." },
         { status: 503 }
       );
     }
