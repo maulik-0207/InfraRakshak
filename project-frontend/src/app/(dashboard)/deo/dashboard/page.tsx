@@ -140,200 +140,7 @@ function Spinner() {
   );
 }
 
-// ─── Admin Staff Management ───────────────────────────────────────────────────
 
-function AdminStaffPanel() {
-  const {
-    data: staffData,
-    loading,
-    refetch,
-  } = useApi<PaginatedResponse<AdminStaffProfile>>(API.profiles.adminStaff);
-
-  const [deleting, setDeleting] = useState<number | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState<{
-    text: string;
-    type: "success" | "error";
-  } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const staffList = staffData?.results ?? [];
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("Remove this admin staff member? This cannot be undone."))
-      return;
-    setDeleting(id);
-    try {
-      const res = await fetch(`${API.profiles.adminStaff}${id}/`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setMessage({ text: "Staff member removed.", type: "success" });
-        refetch();
-      } else {
-        setMessage({ text: "Failed to remove. Try again.", type: "error" });
-      }
-    } catch {
-      setMessage({ text: "Network error.", type: "error" });
-    } finally {
-      setDeleting(null);
-      setTimeout(() => setMessage(null), 3000);
-    }
-  };
-
-  const handleUpload = async (file: File) => {
-    setUploading(true);
-    setMessage(null);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("role", "ADMIN_STAFF");
-
-    try {
-      const res = await fetch(API.onboard.bulk, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMessage({ text: data.message ?? "Uploaded successfully!", type: "success" });
-        refetch();
-      } else {
-        setMessage({
-          text: data.error ?? data.detail ?? "Upload failed.",
-          type: "error",
-        });
-      }
-    } catch {
-      setMessage({ text: "Upload failed. Check your connection.", type: "error" });
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-      setTimeout(() => setMessage(null), 4000);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-[#23251d]">Admin Staff</h2>
-          <p className="text-sm text-[#4d4f46]">
-            Manage district-level admin staff members under your jurisdiction.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            id="admin-staff-upload"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleUpload(f);
-            }}
-          />
-          <label
-            htmlFor="admin-staff-upload"
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all select-none
-              ${uploading
-                ? "bg-[#b6b7af] text-white cursor-not-allowed"
-                : "bg-[#23251d] text-white hover:bg-[#F54E00]"
-              }`}
-          >
-            <Upload className="w-4 h-4" />
-            {uploading ? "Uploading…" : "Upload Excel"}
-          </label>
-        </div>
-      </div>
-
-      {/* Feedback banner */}
-      {message && (
-        <div
-          className={`px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${
-            message.type === "success"
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-              : "bg-red-50 text-red-700 border border-red-200"
-          }`}
-        >
-          {message.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0" />
-          )}
-          {message.text}
-        </div>
-      )}
-
-      {/* Upload instructions */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex gap-3">
-        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-        <div>
-          <strong>Excel format required.</strong> Columns: <code className="bg-amber-100 px-1 rounded">email</code>,{" "}
-          <code className="bg-amber-100 px-1 rounded">full_name</code>,{" "}
-          <code className="bg-amber-100 px-1 rounded">phone_no</code>. Passwords are auto-generated and emailed.
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-[#eeefe9] border border-[#b6b7af] rounded-2xl overflow-hidden">
-        {loading ? (
-          <Spinner />
-        ) : staffList.length === 0 ? (
-          <SectionEmpty message="No admin staff found. Upload an Excel file to onboard team members." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-[10px] font-black uppercase tracking-widest text-[#9ea096] border-b border-[#b6b7af] bg-white/20">
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Email</th>
-                  <th className="px-6 py-4">Phone</th>
-                  <th className="px-6 py-4">Joined</th>
-                  <th className="px-6 py-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#b6b7af]/30">
-                {staffList.map((s) => (
-                  <tr key={s.id} className="hover:bg-white/40 transition-colors group">
-                    <td className="px-6 py-4 font-semibold text-[#23251d]">
-                      {s.full_name || "—"}
-                    </td>
-                    <td className="px-6 py-4 text-[#4d4f46] text-sm">{s.email}</td>
-                    <td className="px-6 py-4 text-[#4d4f46] text-sm">{s.phone_no || "—"}</td>
-                    <td className="px-6 py-4 text-[#9ea096] text-xs">
-                      {new Date(s.created_at).toLocaleDateString("en-IN")}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleDelete(s.id)}
-                        disabled={deleting === s.id}
-                        className="p-2 rounded-lg text-[#9ea096] hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
-                        title="Remove staff member"
-                      >
-                        {deleting === s.id ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {staffData && staffData.count > staffList.length && (
-              <div className="px-6 py-3 text-xs text-[#9ea096] border-t border-[#b6b7af]/30 text-center">
-                Showing {staffList.length} of {staffData.count} members
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 
@@ -575,17 +382,9 @@ function OverviewPanel() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "admin-staff";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "admin-staff", label: "Admin Staff" },
-];
-
 export default function DeoDashboard() {
   const isMounted = useIsMounted();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   if (!isMounted) return <div className="min-h-screen" />;
 
@@ -601,26 +400,8 @@ export default function DeoDashboard() {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-[#eeefe9] border border-[#b6b7af] rounded-xl p-1 w-fit">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
-              activeTab === t.id
-                ? "bg-[#23251d] text-white shadow-sm"
-                : "text-[#4d4f46] hover:text-[#23251d]"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      {activeTab === "overview" && <OverviewPanel />}
-      {activeTab === "admin-staff" && <AdminStaffPanel />}
+      {/* Main Content */}
+      <OverviewPanel />
     </div>
   );
 }

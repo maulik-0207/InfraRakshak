@@ -6,44 +6,25 @@ should live here — NOT inside models or views.
 """
 
 import logging
+from datetime import date, timedelta
 from typing import Any
+
+from django.db import transaction
+
+from .models import PredictionReport, DistrictReport
 
 logger = logging.getLogger("django")
 
 
-class PredictionService:
+class PredictionAggregationService:
     """
-    Encapsulates the workflow for generating prediction reports.
-
-    Usage (from a Celery task or management command):
-        service = PredictionService()
-        service.generate_for_weekly_report(weekly_report_id=42)
+    Handles district-level aggregation of prediction data.
+    Used by the Monday 6:30 PM batch job.
     """
 
     @staticmethod
-    def generate_for_weekly_report(weekly_report_id: int) -> dict[str, Any]:
-        """
-        Generate a PredictionReport for the given WeeklyReport.
-
-        Steps:
-            1. Fetch weekly report + sub-reports.
-            2. Run ML model inference.
-            3. Create PredictionReport + PredictionIssues.
-            4. Update priority_rank.
-
-        Returns:
-            dict with prediction_report_id and summary.
-        """
-        # TODO: implement ML inference pipeline
-        logger.info(
-            "PredictionService.generate_for_weekly_report called "
-            "for weekly_report_id=%s",
-            weekly_report_id,
-        )
-        return {"status": "not_implemented"}
-
-    @staticmethod
-    def generate_district_report(district: str, week_start_date, week_end_date) -> dict[str, Any]:
+    @transaction.atomic
+    def generate_district_report(district: str, week_start_date: date, week_end_date: date) -> dict[str, Any]:
         """
         Aggregate prediction data for a district over a given week.
 
@@ -55,12 +36,46 @@ class PredictionService:
         Returns:
             dict with district_report_id and summary.
         """
-        # TODO: implement aggregation logic
-        logger.info(
-            "PredictionService.generate_district_report called "
-            "for district=%s, %s – %s",
-            district,
-            week_start_date,
-            week_end_date,
+        district_predictions = PredictionReport.objects.filter(
+            school__district=district,
+            weekly_report__week_start_date=week_start_date,
+            weekly_report__week_end_date=week_end_date,
         )
-        return {"status": "not_implemented"}
+
+        total = district_predictions.count()
+        if total == 0:
+            logger.info(f"No predictions found for {district} ({week_start_date} – {week_end_date})")
+            return {"status": "no_data"}
+
+        high_risk = district_predictions.filter(overall_risk_level='HIGH').count()
+        medium_risk = district_predictions.filter(overall_risk_level='MEDIUM').count()
+        low_risk = district_predictions.filter(overall_risk_level='LOW').count()
+        avg_score = sum(p.overall_score for p in district_predictions) / total
+
+        district_report, created = DistrictReport.objects.update_or_create(
+            district=district,
+            week_start_date=week_start_date,
+            week_end_date=week_end_date,
+            defaults={
+                "total_schools": total,
+                "high_risk_schools": high_risk,
+                "medium_risk_schools": medium_risk,
+                "low_risk_schools": low_risk,
+                "avg_score": round(avg_score, 2),
+            }
+        )
+
+        action = "Created" if created else "Updated"
+        logger.info(
+            f"{action} DistrictReport {district_report.id} for {district}: "
+            f"{total} schools, {high_risk} high-risk, avg={round(avg_score, 1)}"
+        )
+
+        return {
+            "district_report_id": district_report.id,
+            "total_schools": total,
+            "high_risk": high_risk,
+            "medium_risk": medium_risk,
+            "low_risk": low_risk,
+            "avg_score": round(avg_score, 2),
+        }

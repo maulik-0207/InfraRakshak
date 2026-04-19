@@ -79,7 +79,7 @@ class Contract(TimeStampedModel):
     )
 
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, default="")
+    description = models.TextField(blank=True, default="", null=True)
 
     category = models.CharField(
         max_length=15,

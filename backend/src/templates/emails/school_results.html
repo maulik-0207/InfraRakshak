@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f0; }
+        .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .header { background: #23251d; color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+        .header .badge { display: inline-block; background: #F54E00; color: white; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+        .content { padding: 30px; }
+        .risk-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .risk-high { background: #FEE2E2; color: #DC2626; }
+        .risk-medium { background: #FEF3C7; color: #D97706; }
+        .risk-low { background: #D1FAE5; color: #059669; }
+        .score-card { background: #f8f8f5; border: 1px solid #eee; border-radius: 10px; padding: 16px; margin: 8px 0; }
+        .score-card .label { font-size: 11px; color: #999; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+        .score-card .score { font-size: 24px; font-weight: 900; color: #23251d; }
+        .overall-box { background: #23251d; color: white; border-radius: 12px; padding: 24px; text-align: center; margin: 20px 0; }
+        .overall-box .score { font-size: 42px; font-weight: 900; }
+        .overall-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.6); }
+        .btn { display: block; text-align: center; padding: 14px 28px; background: #F54E00; color: white; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px; margin: 25px 0; }
+        .footer { background: #f8f8f5; padding: 20px 30px; font-size: 11px; color: #999; text-align: center; border-top: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 6px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>InfraRakshak</h1>
+            <div class="badge">Prediction Results Ready</div>
+        </div>
+        <div class="content">
+            <p>Dear <strong>{{ username }}</strong>,</p>
+            <p>The weekly infrastructure analysis for <strong>{{ school_name }}</strong> has been completed. Here are your results:</p>
+
+            <div class="overall-box">
+                <div class="label">Overall Risk Score</div>
+                <div class="score">{{ overall_score }}%</div>
+                <span class="risk-badge {% if overall_risk == 'HIGH' %}risk-high{% elif overall_risk == 'MEDIUM' %}risk-medium{% else %}risk-low{% endif %}">
+                    {{ overall_risk }} Risk
+                </span>
+            </div>
+
+            <h3 style="margin: 24px 0 12px; color: #23251d; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Category Breakdown</h3>
+
+            <table>
+                <tr>
+                    <td style="width: 33%; padding: 6px;">
+                        <div class="score-card">
+                            <div class="label">🔧 Plumbing</div>
+                            <div class="score">{{ plumbing_score }}%</div>
+                            <span class="risk-badge {% if plumbing_risk == 'HIGH' %}risk-high{% elif plumbing_risk == 'MEDIUM' %}risk-medium{% else %}risk-low{% endif %}" style="font-size: 10px; padding: 3px 10px;">
+                                {{ plumbing_risk }}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="width: 33%; padding: 6px;">
+                        <div class="score-card">
+                            <div class="label">⚡ Electrical</div>
+                            <div class="score">{{ electrical_score }}%</div>
+                            <span class="risk-badge {% if electrical_risk == 'HIGH' %}risk-high{% elif electrical_risk == 'MEDIUM' %}risk-medium{% else %}risk-low{% endif %}" style="font-size: 10px; padding: 3px 10px;">
+                                {{ electrical_risk }}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="width: 33%; padding: 6px;">
+                        <div class="score-card">
+                            <div class="label">🏗️ Structural</div>
+                            <div class="score">{{ structural_score }}%</div>
+                            <span class="risk-badge {% if structural_risk == 'HIGH' %}risk-high{% elif structural_risk == 'MEDIUM' %}risk-medium{% else %}risk-low{% endif %}" style="font-size: 10px; padding: 3px 10px;">
+                                {{ structural_risk }}
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <p style="margin-top: 20px;">Log in to the InfraRakshak portal to view detailed issue breakdowns, recommended actions, and historical trends for your school.</p>
+
+            <a href="{{ dashboard_url }}" class="btn">View Full Report →</a>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from the InfraRakshak Prediction System. Please do not reply.</p>
+            <p>&copy; 2026 InfraRakshak — School Infrastructure Monitoring System</p>
+        </div>
+    </div>
+</body>
+</html>

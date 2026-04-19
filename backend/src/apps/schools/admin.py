@@ -4,7 +4,7 @@ Schools app admin configuration.
 
 from django.contrib import admin
 
-from apps.schools.models import School, SchoolInfrastructure, SchoolProfile
+from apps.schools.models import School, SchoolInfrastructure, SchoolProfile, SchoolRegistrationRequest
 
 
 @admin.register(School)
@@ -51,3 +51,5 @@ class SchoolInfrastructureAdmin(admin.ModelAdmin):
     )
     raw_id_fields = ("school", "submitted_by")
     date_hierarchy = "survey_date"
+
+admin.site.register(SchoolRegistrationRequest)

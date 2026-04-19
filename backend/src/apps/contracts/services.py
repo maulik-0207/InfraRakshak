@@ -11,9 +11,11 @@ from rest_framework.exceptions import ValidationError
 
 from .models import (
     Contract, ContractBid, ContractAssignment, 
-    WorkProgress, WorkProof, PriorityLevel
+    WorkProgress, WorkProof, PriorityLevel,
+    WorkVerification
 )
 from apps.notifications.models import Notification
+from apps.accounts.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +196,31 @@ class ContractLifecycleService:
         if contract.status == Contract.Status.AWARDED:
             contract.status = Contract.Status.IN_PROGRESS
             contract.save()
+
+        # Handle 100% Completion
+        if progress_percent >= 100:
+            contract.status = Contract.Status.COMPLETED
+            contract.save()
+
+            # Create Verification request for DEO
+            WorkVerification.objects.get_or_create(
+                contract=contract,
+                defaults={'verification_status': WorkVerification.VerificationStatus.PENDING}
+            )
+
+            # Notify DEO(s) in the school's district
+            deo_users = User.objects.filter(
+                role=User.Role.DEO, 
+                deo_profile__district=contract.school.district
+            )
+            for deo in deo_users:
+                Notification.objects.create(
+                    user=deo,
+                    title="Payment Approval Required",
+                    message=f"Contractor has completed '{contract.title}'. Please verify work proof and approve payment.",
+                    type="CONTRACT"
+                )
+            logger.info(f"Contract {contract_id} submitted for DEO approval.")
 
         logger.info(f"Work proof uploaded for Contract {contract_id} (Progress: {progress_percent}%)")
         return proof

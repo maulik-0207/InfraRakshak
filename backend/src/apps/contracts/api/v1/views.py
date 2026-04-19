@@ -160,6 +160,27 @@ class ContractViewSet(viewsets.ModelViewSet):
             return ContractDetailSerializer
         return ContractListSerializer
 
+    @extend_schema(summary="Delete contract forcefully", tags=["Contracts"])
+    def destroy(self, request, *args, **kwargs):
+        """
+        Manually handle the cascaded deletion of protected relationships 
+        like Assignments, preventing ProtectedError constraint blocks.
+        """
+        instance = self.get_object()
+        
+        # 1. Safely break protected links in assignments before main deletion
+        try:
+            if hasattr(instance, 'assignment') and instance.assignment:
+                instance.assignment.delete()
+        except Exception:
+            pass
+            
+        # 2. Main Contract deletion (which cascades directly to remaining bids)
+        return super().destroy(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
 
 # ===========================================================================
 # Contract Bid
@@ -468,6 +489,13 @@ class WorkVerificationViewSet(viewsets.ModelViewSet):
     destroy=extend_schema(summary="Delete payment", tags=["Contracts"]),
 )
 class ContractPaymentViewSet(viewsets.ModelViewSet):
+    """CRUD for contract payment records."""
+
+    queryset = ContractPayment.objects.select_related("contract").all()
+    serializer_class = ContractPaymentSerializer
+    filterset_fields = ["contract", "payment_status"]
+    ordering_fields = ["paid_at", "amount"]
+    permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff]
     """CRUD for contract payment records."""
 
     queryset = ContractPayment.objects.select_related("contract").all()

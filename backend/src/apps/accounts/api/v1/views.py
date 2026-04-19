@@ -106,11 +106,13 @@ class DashboardViewSet(viewsets.ViewSet):
 
         if role == User.Role.DEO:
             from apps.schools.models import School
-            from apps.contracts.models import Contract
+            from apps.contracts.models import Contract, ContractBid
+            
+            deo_district = user.deo_profile.district
             data["stats"] = {
-                "total_schools": School.objects.filter(district=user.deo_profile.district).count(),
-                "active_contracts": Contract.objects.filter(status="IN_PROGRESS").count(),
-                "pending_bids": 0, # Placeholder
+                "total_schools": School.objects.filter(district=deo_district).count(),
+                "active_contracts": Contract.objects.filter(school__district=deo_district, status="IN_PROGRESS").count(),
+                "pending_bids": ContractBid.objects.filter(contract__school__district=deo_district, status="PENDING").count(),
             }
         elif role == User.Role.SCHOOL:
             from apps.reports.models import WeeklyReport
@@ -145,9 +147,13 @@ class DashboardViewSet(viewsets.ViewSet):
             today = date.today()
             current_monday = today - timedelta(days=today.weekday())
             
+            draft_qs = WeeklyReport.objects.filter(status="DRAFT", school__udise_code=udise) if udise else WeeklyReport.objects.none()
+            latest_draft = draft_qs.order_by("-created_at").first()
+
             data["stats"] = {
-                "weekly_reports_submitted": WeeklyReport.objects.filter(submitted_by=user).count(),
-                "pending_reports": WeeklyReport.objects.filter(status="DRAFT", school__udise_code=udise, week_start_date=current_monday).count() if udise else 0,
+                "weekly_reports_submitted": WeeklyReport.objects.filter(status__in=["SUBMITTED", "REVIEWED"], school__udise_code=udise).count() if udise else 0,
+                "pending_reports": draft_qs.count(),
+                "latest_draft_id": latest_draft.id if latest_draft else None,
             }
         
         return Response(data)
@@ -350,6 +356,21 @@ class ContractorProfileViewSet(viewsets.ModelViewSet):
     queryset = ContractorProfile.objects.all()
     serializer_class = ContractorProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsContractor]
+
+    @action(detail=False, methods=["get", "patch"], url_path="me")
+    def me(self, request):
+        profile = getattr(request.user, 'contractor_profile', None)
+        if not profile:
+            return Response({"error": "No contractor profile found for this user"}, status=status.HTTP_404_NOT_FOUND)
+            
+        if request.method == "PATCH":
+            serializer = self.get_serializer(profile, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+            
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
 
 @extend_schema_view(
     list=extend_schema(**{**PROFILE_KWARGS["list"], "summary": "List admin staff profiles"}),

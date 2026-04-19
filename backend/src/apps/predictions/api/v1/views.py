@@ -63,6 +63,24 @@ class PredictionReportViewSet(viewsets.ModelViewSet):
     ordering_fields = ["priority_rank", "overall_score", "generated_at"]
     permission_classes = [permissions.IsAuthenticated, IsDEOOrAdminStaff | IsSchoolOrStaff]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_authenticated:
+            return qs.none()
+            
+        if hasattr(user, 'role') and user.role in ["DEO", "ADMIN_STAFF"]:
+            if hasattr(user, 'deo_profile'):
+                return qs.filter(school__district=user.deo_profile.district)
+        elif hasattr(user, 'role') and user.role == "SCHOOL":
+            if hasattr(user, 'school_profile'):
+                return qs.filter(school=user.school_profile)
+        elif hasattr(user, 'role') and user.role == "STAFF":
+            if hasattr(user, 'staff_profile') and user.staff_profile.parent_school:
+                return qs.filter(school=user.staff_profile.parent_school)
+                
+        return qs
+
     @extend_schema(summary="Export predictions to CSV", tags=["Predictions"])
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
@@ -135,3 +153,34 @@ class DistrictReportViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
         fields = ["district", "week_start_date", "avg_score", "high_risk_schools", "total_schools"]
         return export_queryset_to_excel(queryset, fields, filename_prefix="district_predictions")
+
+    @extend_schema(summary="Get schools by risk level for a district report", tags=["Predictions"])
+    @action(detail=True, methods=["get"], url_path="schools")
+    def schools(self, request, pk=None):
+        from rest_framework.response import Response
+        
+        district_report = self.get_object()
+        risk_level = request.query_params.get("risk_level")
+        
+        preds = PredictionReport.objects.filter(
+            school__district=district_report.district,
+            weekly_report__week_start_date=district_report.week_start_date,
+        ).select_related("school").order_by("priority_rank", "-overall_score")
+        
+        if risk_level:
+            preds = preds.filter(overall_risk_level=risk_level.upper())
+            
+        data = []
+        for p in preds:
+            data.append({
+                "id": p.id,
+                "school_id": p.school.id,
+                "school_name": p.school.name,
+                "district": p.school.district,
+                "udise_code": p.school.udise_code,
+                "overall_score": p.overall_score,
+                "overall_risk_level": p.overall_risk_level,
+                "priority_rank": p.priority_rank,
+                "generated_at": p.generated_at,
+            })
+        return Response(data)

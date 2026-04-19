@@ -16,13 +16,11 @@ export function DeoSidebar() {
   const navItems = [
     { title: "Dashboard", url: "/deo/dashboard", icon: Home },
     { title: "Contracts", url: "/deo/contracts", icon: ClipboardCheck },
-    { title: "Admin Staff", url: "/deo/admin-staff", icon: ShieldCheck },
     { title: "Contractors", url: "/deo/contractors", icon: ClipboardCheck },
     { title: "Schools", url: "/deo/schools", icon: School },
     { title: "Reports", url: "/deo/reports", icon: Calendar },
     { title: "Notifications", url: "/deo/notifications", icon: Inbox },
     { title: "Account", url: "/deo/account", icon: User },
-    { title: "Settings", url: "/settings", icon: Settings },
   ]
 
   return (

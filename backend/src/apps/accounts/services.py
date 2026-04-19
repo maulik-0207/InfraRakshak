@@ -45,6 +45,17 @@ class AuthService:
         # Create profile
         SchoolAccountProfile.objects.create(user=user, **data)
         
+        # Fire off the internal workflow to create the unapproved School entity
+        from apps.schools.services import SchoolWorkflowService
+        school_data = {
+            "udise_code": data.get("udise_code"),
+            "name": data.get("school_name"),
+            "district": data.get("district"),
+            "address": data.get("address"),
+            "school_type": data.get("school_type"),
+        }
+        SchoolWorkflowService.submit_registration(user, school_data)
+        
         AuthService.trigger_verification_flow(user)
         logger.info(f"School account registered: {email}")
         return user

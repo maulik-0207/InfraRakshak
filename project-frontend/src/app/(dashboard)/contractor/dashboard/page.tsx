@@ -343,7 +343,11 @@ function ActiveWorkPanel() {
             if (!progressRes.ok) throw new Error("Failed to update status");
         }
 
-        toast.success("Work progress updated!");
+        if (progress === 100) {
+            toast.success("Project marked as COMPLETED! Sent to DEO for payment approval.");
+        } else {
+            toast.success("Work progress updated!");
+        }
         setReporting(null);
         setNote("");
         setProgress(0);

@@ -277,15 +277,11 @@ from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
     "initiate-weekly-report-cycle": {
         "task": "initiate_weekly_report_cycle",
-        "schedule": crontab(hour=6, minute=0, day_of_week=1),  # Monday 6:00 AM
+        "schedule": crontab(hour=6, minute=0, day_of_week=1),  # Monday 6:00 AM IST
     },
-    "run-weekly-prediction-batch": {
-        "task": "run_weekly_prediction_batch",
-        "schedule": crontab(hour=18, minute=0, day_of_week=1),  # Monday 6:00 PM
-    },
-    "send-daily-reminders": {
-        "task": "send_report_reminders",
-        "schedule": crontab(hour=9, minute=0),  # Daily 9:00 AM
+    "auto-close-and-predict-weekly": {
+        "task": "auto_close_and_predict_weekly",
+        "schedule": crontab(hour=18, minute=30, day_of_week=1),  # Monday 6:30 PM IST
     },
 }
 

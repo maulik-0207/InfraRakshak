@@ -41,7 +41,7 @@ class SchoolWorkflowService:
         
         # System Notification for admins/DEOs
         # In a real scenario, we'd find the relevant DEO for the district
-        logger.info(f"School registration submitted for {school.name} by {user.username}")
+        logger.info(f"School registration submitted for {school.name} by {user.email}")
         
         return request
 
@@ -70,9 +70,9 @@ class SchoolWorkflowService:
         if status == SchoolRegistrationRequest.RegistrationStatus.APPROVED:
             school.is_active = True
             school.save()
-            logger.info(f"School {school.name} APPROVED by {processed_by.username}")
+            logger.info(f"School {school.name} APPROVED by {processed_by.email}")
         else:
-            logger.info(f"School {school.name} REJECTED by {processed_by.username}. Reason: {reason}")
+            logger.info(f"School {school.name} REJECTED by {processed_by.email}. Reason: {reason}")
 
         # Send Notifications
         SchoolWorkflowService._notify_status_change(req)
@@ -99,13 +99,13 @@ class SchoolWorkflowService:
             user=user,
             title=f"School Registration {status.capitalize()}",
             message=msg,
-            notification_type="SYSTEM"
+            type="ALERT"
         )
         
         # 2. Email Notification (Async)
         send_school_status_email_task.delay(
             email=user.email,
-            username=user.username,
+            username=user.email,
             school_name=school_name,
             status=status,
             reason=request.rejection_reason

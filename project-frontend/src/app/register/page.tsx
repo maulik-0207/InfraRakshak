@@ -60,11 +60,11 @@ export default function RegisterPage() {
     }
 
     const endpoint = isSchool 
-      ? "http://192.168.1.29:8000/api/v1/accounts/register/school/" 
-      : "http://192.168.1.29:8000/api/v1/accounts/register/contractor/";
+      ? "/api/v1/accounts/register/school/" 
+      : "/api/v1/accounts/register/contractor/";
 
     const payload = isSchool ? {
-      school_id: schoolId,
+      udise_code: schoolId,
       school_name: schoolName,
       email: schoolEmail,
       phone_no: phoneNum,

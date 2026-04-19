@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f0; }
+        .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .header { background: #23251d; color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+        .header .badge { display: inline-block; background: #F54E00; color: white; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+        .content { padding: 30px; }
+        .deadline-box { background: #FFF3ED; border: 2px solid #F54E00; border-radius: 10px; padding: 18px; margin: 20px 0; text-align: center; }
+        .deadline-box .time { font-size: 28px; font-weight: 900; color: #F54E00; }
+        .deadline-box .label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .info-row { display: flex; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .info-label { color: #999; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; min-width: 120px; }
+        .info-value { color: #23251d; font-weight: 600; }
+        .btn { display: block; text-align: center; padding: 14px 28px; background: #F54E00; color: white; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px; margin: 25px 0; }
+        .footer { background: #f8f8f5; padding: 20px 30px; font-size: 11px; color: #999; text-align: center; border-top: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>InfraRakshak</h1>
+            <div class="badge">Weekly Report Created</div>
+        </div>
+        <div class="content">
+            <p>Hello <strong>{{ username }}</strong>,</p>
+            <p>A new weekly infrastructure report has been created for your school and requires your attention.</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-size: 12px; font-weight: bold; text-transform: uppercase;">School</td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #23251d; font-weight: 600;">{{ school_name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-size: 12px; font-weight: bold; text-transform: uppercase;">Week</td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #23251d; font-weight: 600;">{{ week_start }} — {{ week_end }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-size: 12px; font-weight: bold; text-transform: uppercase;">Sections</td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #23251d; font-weight: 600;">Plumbing · Electrical · Structural</td>
+                </tr>
+            </table>
+
+            <div class="deadline-box">
+                <div class="label">Submission Deadline</div>
+                <div class="time">Today — 6:00 PM</div>
+                <p style="margin: 8px 0 0; font-size: 12px; color: #666;">Reports not submitted by deadline will be auto-closed.</p>
+            </div>
+
+            <p>Please log in to the InfraRakshak portal, navigate to your dashboard, and fill in all three sections (Plumbing, Electrical, Structural) accurately.</p>
+
+            <a href="{{ dashboard_url }}" class="btn">Fill Report Now →</a>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from InfraRakshak. Please do not reply.</p>
+            <p>&copy; 2026 InfraRakshak — School Infrastructure Monitoring System</p>
+        </div>
+    </div>
+</body>
+</html>

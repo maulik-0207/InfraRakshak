@@ -66,7 +66,7 @@ class SchoolProfileSerializer(serializers.ModelSerializer):
             "school_type", "weather_zone", "material_type",
             "building_age", "is_girls_school", "flood_prone_area"
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "school", "created_at", "updated_at"]
 
     def update(self, instance, validated_data):
         # Extract fields belong to the related School model
@@ -166,7 +166,7 @@ class SchoolRegistrationRequestSerializer(serializers.ModelSerializer):
 
     school_name = serializers.CharField(source="school.name", read_only=True)
     submitted_by_name = serializers.CharField(
-        source="submitted_by.get_full_name", read_only=True
+        source="submitted_by.email", read_only=True
     )
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 

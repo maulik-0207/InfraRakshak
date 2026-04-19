@@ -35,7 +35,7 @@ class ContractListSerializer(serializers.ModelSerializer):
             "bid_start_date", "bid_end_date",
             "created_by", "created_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "created_by"]
 
 
 class ContractBidSerializer(serializers.ModelSerializer):

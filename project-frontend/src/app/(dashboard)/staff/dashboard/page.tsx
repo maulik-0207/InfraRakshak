@@ -24,6 +24,7 @@ interface DashboardStats {
   stats: {
     weekly_reports_submitted?: number;
     pending_reports?: number;
+    latest_draft_id?: number | null;
   };
 }
 
@@ -77,18 +78,8 @@ export default function StaffDashboard() {
   const stats = dashData?.stats;
   const reports = reportsRaw?.results ?? [];
 
-  // Define current week starting Monday for comparison
-  const now = new Date();
-  const currentMonday = new Date(now);
-  currentMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  currentMonday.setHours(0, 0, 0, 0);
-
-  const draftReport = reports.find((r) => {
-    if (r.status !== "DRAFT") return false;
-    const reportDate = new Date(r.week_start_date);
-    reportDate.setHours(0, 0, 0, 0);
-    return reportDate.getTime() === currentMonday.getTime();
-  });
+  const hasPending = (stats?.pending_reports ?? 0) > 0;
+  const draftId = stats?.latest_draft_id;
 
   if (!isMounted) return <div className="min-h-screen" />;
 
@@ -109,11 +100,11 @@ export default function StaffDashboard() {
               Submit weekly infrastructure status reports for your school. Accuracy ensures timely maintenance.
             </p>
           </div>
-          {reportsLoading ? (
+          {reportsLoading || dashLoading ? (
             <div className="h-10 w-40 bg-white/10 rounded animate-pulse" />
-          ) : draftReport ? (
+          ) : hasPending && draftId ? (
             <Link
-              href={`/staff/reports/${draftReport.id}`}
+              href={`/staff/reports/${draftId}`}
               className="relative z-10 flex items-center gap-2 bg-[#F54E00] text-white px-7 py-3 rounded-2xl font-black shadow-lg shadow-[#F54E00]/20 hover:scale-105 active:scale-95 transition-all shrink-0"
             >
               <FileText className="w-5 h-5" /> Continue Pending Report

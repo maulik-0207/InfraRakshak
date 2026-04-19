@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { 
   Plus, 
   Search, 
@@ -13,7 +14,8 @@ import {
   MoreVertical,
   Filter,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 
 interface SchoolData {
@@ -30,7 +32,7 @@ interface RegistrationRequest {
   school_name: string;
   status: string;
   status_display: string;
-  submitted_at: string;
+  created_at: string;
   submitted_by_name: string;
 }
 
@@ -41,6 +43,7 @@ export default function DeoSchoolManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [processingIds, setProcessingIds] = useState<number[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -64,8 +67,41 @@ export default function DeoSchoolManagement() {
       }
     } catch (err) {
       console.error("Failed to fetch data", err);
+      toast.error("Network error. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleProcessRequest = async (id: number, status: "APPROVED" | "REJECTED") => {
+    let reason = "";
+    if (status === "REJECTED") {
+      reason = window.prompt("Please provide a reason for rejection:") || "";
+      if (!reason) {
+        toast.error("Rejection reason is required.");
+        return;
+      }
+    }
+
+    setProcessingIds(prev => [...prev, id]);
+    try {
+      const res = await fetch(`/api/v1/schools/registration-requests/${id}/process/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reason })
+      });
+
+      if (res.ok) {
+        toast.success(`School registration ${status.toLowerCase()} successfully!`);
+        fetchData();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to process request");
+      }
+    } catch (err) {
+      toast.error("System error while processing request");
+    } finally {
+      setProcessingIds(prev => prev.filter(p => p !== id));
     }
   };
 
@@ -103,11 +139,12 @@ export default function DeoSchoolManagement() {
       if (res.ok) {
         setIsBulkModalOpen(false);
         setBulkFile(null);
-        alert("Bulk onboarding initiated successfully!");
+        toast.success("Bulk onboarding initiated successfully!");
         fetchData();
       }
     } catch (err) {
       console.error("Bulk upload failed", err);
+      toast.error("Upload failed. Verify file format.");
     }
   };
 
@@ -125,7 +162,7 @@ export default function DeoSchoolManagement() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 px-4 pt-4">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -136,11 +173,6 @@ export default function DeoSchoolManagement() {
             Manage district schools, approve registrations, and maintain the central infrastructure database.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <UtilityButton icon={Download} label="Export list" onClick={handleExport} />
-          <UtilityButton icon={FileSpreadsheet} label="Bulk Onboard" onClick={() => setIsBulkModalOpen(true)} />
-          <UtilityButton icon={Plus} label="New School" primary />
-        </div>
       </div>
 
       {/* Tabs */}
@@ -149,7 +181,7 @@ export default function DeoSchoolManagement() {
           onClick={() => setActiveTab("active")}
           className={`px-8 py-4 font-black transition-all border-b-4 ${activeTab === "active" ? "border-[#F54E00] text-[#23251d]" : "border-transparent text-[#9ea096] hover:text-[#4d4f46]"}`}
         >
-          Active Schools
+          Schools Registry
         </button>
         <button 
           onClick={() => setActiveTab("requests")}
@@ -252,17 +284,44 @@ export default function DeoSchoolManagement() {
                           <p className="font-bold text-[#23251d]">{r.school_name}</p>
                         </td>
                         <td className="p-6 text-sm text-[#4d4f46]">{r.submitted_by_name}</td>
-                        <td className="p-6 text-sm text-[#4d4f46]">{new Date(r.submitted_at).toLocaleDateString()}</td>
-                        <td className="p-6 text-right">
-                            <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <button className="h-9 px-4 bg-green-600 text-white text-[10px] font-black rounded-lg hover:bg-green-700 transition-all flex items-center gap-2">
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> APPROVE
-                               </button>
-                               <button className="h-9 px-4 bg-red-600 text-white text-[10px] font-black rounded-lg hover:bg-red-700 transition-all flex items-center gap-2">
-                                  <XCircle className="w-3.5 h-3.5" /> REJECT
-                               </button>
-                            </div>
-                            <span className="group-hover:hidden text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">{r.status_display}</span>
+                        <td className="p-6 text-sm text-[#4d4f46]">{new Date(r.created_at).toLocaleDateString()}</td>
+                        <td className="p-6 text-right relative">
+                            {processingIds.includes(r.id) ? (
+                              <div className="flex justify-end pr-4">
+                                <Loader2 className="w-5 h-5 animate-spin text-[#F54E00]" />
+                              </div>
+                            ) : (
+                              <>
+                                {r.status === "PENDING" ? (
+                                  <>
+                                    <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 top-1/2 -translate-y-1/2 bg-white pl-4">
+                                      <button 
+                                        onClick={() => handleProcessRequest(r.id, "APPROVED")}
+                                        className="h-9 px-4 bg-green-600 text-white text-[10px] font-black rounded-lg hover:bg-green-700 transition-all flex items-center gap-2"
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5" /> APPROVE
+                                      </button>
+                                      <button 
+                                        onClick={() => handleProcessRequest(r.id, "REJECTED")}
+                                        className="h-9 px-4 bg-red-600 text-white text-[10px] font-black rounded-lg hover:bg-red-700 transition-all flex items-center gap-2"
+                                      >
+                                        <XCircle className="w-3.5 h-3.5" /> REJECT
+                                      </button>
+                                    </div>
+                                    <span className="group-hover:opacity-0 transition-opacity text-[10px] font-black uppercase px-2.5 py-1.5 rounded-lg border text-amber-600 bg-amber-50 border-amber-200">
+                                      {r.status_display}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className={`text-[10px] font-black uppercase px-2.5 py-1.5 rounded-lg border ${
+                                    r.status === "APPROVED" ? "text-green-600 bg-green-50 border-green-200" :
+                                    "text-red-600 bg-red-50 border-red-200"
+                                  }`}>
+                                    {r.status_display}
+                                  </span>
+                                )}
+                              </>
+                            )}
                         </td>
                       </tr>
                     ))

@@ -27,6 +27,7 @@ export const API = {
   predictions: {
     list: "/api/v1/predictions/reports/",
     district: "/api/v1/predictions/district-reports/",
+    detail: (id: number | string) => `/api/v1/predictions/reports/${id}/`,
   },
 
   contracts: {
@@ -41,7 +42,10 @@ export const API = {
     adminStaff: "/api/v1/accounts/profiles/admin-staff/",
     staff: "/api/v1/accounts/profiles/staff/",
     schools: "/api/v1/accounts/profiles/schools/",
-    contractors: "/api/v1/accounts/profiles/contractors/",
+    contractors: {
+      base: "/api/v1/accounts/profiles/contractors/",
+      me: "/api/v1/accounts/profiles/contractors/me/",
+    },
     deos: "/api/v1/accounts/profiles/deos/",
   },
 
